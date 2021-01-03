@@ -140,6 +140,7 @@ static void terminal_solenoid_pulse(int argc, const char **argv) {
           }
         }
 
+        mc_interface_set_current(0);
         commands_printf("Done\n");
       }
     } else {

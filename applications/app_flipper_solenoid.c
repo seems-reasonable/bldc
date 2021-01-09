@@ -44,10 +44,14 @@ static void control_callback(void);
 
 // Terminal command implementations.
 static void terminal_solenoid_pulse(int argc, const char **argv);
+static void terminal_solenoid_plot(int argc, const char **argv);
 
 // Private variables
 static volatile bool stop_now = true;
 static volatile bool is_running = false;
+static bool do_plot = false;
+static float plot_sample;
+static MUTEX_DECL(plot_mutex);
 
 // Called when the custom application is started. Start our
 // threads here and set up callbacks.
@@ -55,6 +59,7 @@ void app_custom_start(void) {
   mc_interface_set_pwm_callback(control_callback);
 
   stop_now = false;
+  do_plot = false;
   chThdCreateStatic(flipper_solenoid_thread_wa,
                     sizeof(flipper_solenoid_thread_wa), NORMALPRIO,
                     flipper_solenoid_thread, NULL);
@@ -63,6 +68,8 @@ void app_custom_start(void) {
   terminal_register_command_callback("solenoid_pulse", "Pulse a solenoid",
                                      "[current_A] [time_S]",
                                      terminal_solenoid_pulse);
+  terminal_register_command_callback("solenoid_plot", "Enable solenoid plotting",
+                                     "[enable]", terminal_solenoid_plot);
 }
 
 // Called when the custom application is stopped. Stop our threads
@@ -73,6 +80,7 @@ void app_custom_start(void) {
 void app_custom_stop(void) {
   mc_interface_set_pwm_callback(0);
   terminal_unregister_callback(terminal_solenoid_pulse);
+  terminal_unregister_callback(terminal_solenoid_plot);
 
   stop_now = true;
   while (is_running) {
@@ -96,32 +104,70 @@ static THD_FUNCTION(flipper_solenoid_thread, arg) {
       return;
     }
 
-    timeout_reset(); // Reset timeout if everything is OK.
+    chMtxLock(&plot_mutex);
+    if (do_plot) {
+      commands_plot_set_graph(0);
+      commands_send_plot_points(
+          plot_sample, mc_interface_get_tot_current());
+      const float duty_cycle = mc_interface_get_duty_cycle_now();
+      commands_plot_set_graph(1);
+      commands_send_plot_points(plot_sample, duty_cycle);
+      commands_plot_set_graph(2);
+      commands_send_plot_points(
+          plot_sample, duty_cycle * GET_INPUT_VOLTAGE());
+      ++plot_sample;
+    }
+    chMtxUnlock(&plot_mutex);
 
     // Run your logic here. A lot of functionality is available in
     // mc_interface.h.
     // TODO(Brian): Do the normal PWM input controls.
+    // TODO(Brian): timeout_reset(); // Reset timeout if everything is OK.
     // TODO(Brian): How does this get overriden by terminal commands?
 
-    chThdSleepMilliseconds(10);
+    chThdSleepMicroseconds(1000);
   }
 }
 
 static void control_callback(void) {}
 
+static void start_plot(void) {
+  chMtxLock(&plot_mutex);
+  do_plot = true;
+  plot_sample = 0;
+  commands_init_plot("Sample", "");
+  commands_plot_add_graph("Current");
+  commands_plot_add_graph("Duty cycle");
+  commands_plot_add_graph("Effective voltage");
+  chMtxUnlock(&plot_mutex);
+}
+
+static void stop_plot(void) {
+  chMtxLock(&plot_mutex);
+  do_plot = false;
+  chMtxUnlock(&plot_mutex);
+}
+
 static void terminal_solenoid_pulse(int argc, const char **argv) {
-  if (argc == 3) {
+  if (argc == 3 || argc == 4 ) {
+    bool pulse_plot = argc == 4 && strcmp(argv[3], "plot") == 0;
+
     float current = -1.0;
     float time = -1.0;
     sscanf(argv[1], "%f", &current);
     sscanf(argv[2], "%f", &time);
 
-    commands_printf("Pulsing solenoid at %f A for %f seconds", (double)current,
-                    (double)time);
+    commands_printf("Pulsing solenoid at %f A for %f seconds%s",
+        (double)current, (double)time,
+        pulse_plot ? " with plotting" : "");
 
     // Based on rotor_lock_openloop.
     if (current > 0.0 &&
         current <= mc_interface_get_configuration()->l_current_max) {
+      if (pulse_plot) {
+        start_plot();
+        chThdSleepMilliseconds(5);
+      }
       if (time <= 1e-6) {
         timeout_reset();
         mc_interface_set_current(current);
@@ -141,6 +187,10 @@ static void terminal_solenoid_pulse(int argc, const char **argv) {
         }
 
         mc_interface_set_current(0);
+        if (pulse_plot) {
+          chThdSleepMilliseconds(20);
+          stop_plot();
+        }
         commands_printf("Done\n");
       }
     } else {
@@ -148,5 +198,19 @@ static void terminal_solenoid_pulse(int argc, const char **argv) {
     }
   } else {
     commands_printf("This command requires two arguments.\n");
+  }
+}
+
+static void terminal_solenoid_plot(int argc, const char **argv) {
+  if (argc == 2) {
+    if (argv[1][0] == '1') {
+      start_plot();
+      commands_printf("Solenoid plotting enabled.\n");
+    } else {
+      stop_plot();
+      commands_printf("Solenoid plotting disabled.\n");
+    }
+  } else {
+    commands_printf("This command requires one argument.\n");
   }
 }

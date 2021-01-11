@@ -162,7 +162,7 @@ static void terminal_solenoid_pulse(int argc, const char **argv) {
         pulse_plot ? " with plotting" : "");
 
     // Based on rotor_lock_openloop.
-    if (current > 0.0 &&
+    if (current > 0.0 && time > 0.0 &&
         current <= mc_interface_get_configuration()->l_current_max) {
       if (pulse_plot) {
         start_plot();

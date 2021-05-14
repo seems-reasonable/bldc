@@ -21,8 +21,20 @@
 #define HW_H_
 
 #include "stm32f4xx_conf.h"
-
 #include HW_HEADER
+
+#ifdef HW_HAS_DRV8301
+#include "drv8301.h"
+#endif
+#ifdef HW_HAS_DRV8305
+#include "drv8305.h"
+#endif
+#ifdef HW_HAS_DRV8320S
+#include "drv8320s.h"
+#endif
+#ifdef HW_HAS_DRV8323S
+#include "drv8323s.h"
+#endif
 
 #ifndef HW_NAME
 #error "No hardware name set"
@@ -475,6 +487,10 @@
 #define HW_PAS1_PIN				HW_UART_RX_PIN
 #define HW_PAS2_PORT			HW_UART_TX_PORT
 #define HW_PAS2_PIN				HW_UART_TX_PIN
+#endif
+
+#ifndef HW_RESET_DRV_FAULTS
+#define HW_RESET_DRV_FAULTS()
 #endif
 
 // Functions

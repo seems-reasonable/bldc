@@ -148,6 +148,9 @@ static void stop_plot(void) {
   chMtxUnlock(&plot_mutex);
 }
 
+#define CLI_MAX_CURRENT 220
+#define CLI_MAX_TIME 0.25
+
 static void terminal_solenoid_pulse(int argc, const char **argv) {
   if (argc == 3 || argc == 4 ) {
     bool pulse_plot = argc == 4 && strcmp(argv[3], "plot") == 0;
@@ -163,7 +166,8 @@ static void terminal_solenoid_pulse(int argc, const char **argv) {
 
     // Based on rotor_lock_openloop.
     if (current > 0.0 && time > 0.0 &&
-        current <= mc_interface_get_configuration()->l_current_max) {
+        current <= mc_interface_get_configuration()->l_current_max &&
+		current <= CLI_MAX_CURRENT * 1.01 && time < CLI_MAX_TIME * 1.01) {
       if (pulse_plot) {
         start_plot();
         chThdSleepMilliseconds(5);

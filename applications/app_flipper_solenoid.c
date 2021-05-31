@@ -21,7 +21,6 @@
 #include "ch.h"
 #include "hal.h"
 
-// Some useful includes
 #include "comm_can.h"
 #include "commands.h"
 #include "encoder.h"
@@ -30,14 +29,21 @@
 #include "terminal.h"
 #include "timeout.h"
 #include "utils.h"
+#include "servo_dec.h"
 
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 
+#define MIN_PULSES_WITHOUT_POWER		50
+
 // Threads
 static THD_FUNCTION(flipper_solenoid_thread, arg);
 static THD_WORKING_AREA(flipper_solenoid_thread_wa, 2048);
+static volatile bool ppm_rx = false;
+
+// Private functions
+static void servodec_func(void);
 
 // Will be called after each output PWM cycle, in the interrupt.
 static void control_callback(void);
@@ -47,8 +53,11 @@ static void terminal_solenoid_pulse(int argc, const char **argv);
 static void terminal_solenoid_plot(int argc, const char **argv);
 
 // Private variables
-static volatile bool stop_now = true;
 static volatile bool is_running = false;
+static volatile bool stop_now = true;
+static volatile ppm_config config;
+static volatile int pulses_without_power = 0;
+
 static bool do_plot = false;
 static float plot_sample;
 static MUTEX_DECL(plot_mutex);
@@ -88,13 +97,25 @@ void app_custom_stop(void) {
   }
 }
 
-void app_custom_configure(app_configuration *conf) { (void)conf; }
+void app_custom_configure(app_configuration *conf) {
+	config = conf->app_ppm_conf;
+	pulses_without_power = 0;
+}
+
+static void servodec_func(void) {
+	ppm_rx = true;
+	chSysLockFromISR();
+	//chEvtSignalI(ppm_tp, (eventmask_t) 1);
+	chSysUnlockFromISR();
+}
 
 static THD_FUNCTION(flipper_solenoid_thread, arg) {
   (void)arg;
 
   chRegSetThreadName("App Flipper Solenoid");
 
+  servodec_set_pulse_options(config.pulse_start, config.pulse_end, config.median_filter);
+  servodec_init(servodec_func);
   is_running = true;
 
   for (;;) {
@@ -121,12 +142,72 @@ static THD_FUNCTION(flipper_solenoid_thread, arg) {
 
     // Run your logic here. A lot of functionality is available in
     // mc_interface.h.
-    // TODO(Brian): Do the normal PWM input controls.
-    // TODO(Brian): timeout_reset(); // Reset timeout if everything is OK.
     // TODO(Brian): How does this get overriden by terminal commands?
 
-    chThdSleepMicroseconds(1000);
-  }
+	// Reset the timeout if we got a pulse since last time through.
+	if (ppm_rx) {
+		ppm_rx = false;
+		timeout_reset();
+	}
+
+	float servo_val = servodec_get_servo(0);
+	float servo_ms = utils_map(servo_val, -1.0, 1.0, config.pulse_start, config.pulse_end);
+	static bool servoError = false;
+
+	// Mapping with respect to center pulsewidth
+	if (servo_ms < config.pulse_center) {
+		servo_val = utils_map(servo_ms, config.pulse_start,
+				config.pulse_center, -1.0, 0.0);
+	} else {
+		servo_val = utils_map(servo_ms, config.pulse_center,
+				config.pulse_end, 0.0, 1.0);
+	}
+
+	if (servodec_get_time_since_update() > timeout_get_timeout_msec()) {
+		pulses_without_power = 0;
+		servoError = true;
+	} else if (mc_interface_get_fault() != FAULT_CODE_NONE){
+		pulses_without_power = 0;
+	}
+
+	// Apply deadband
+	utils_deadband(&servo_val, config.hyst, 1.0);
+
+	// Apply throttle curve
+	servo_val = utils_throttle_curve(servo_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
+
+	bool fire_now = servo_val > 0.5;
+
+	if (fabsf(servo_val) < 0.001) {
+		pulses_without_power++;
+	}
+
+	//Safe start : If startup, servo timeout or fault, check if idle has been verified for some pulses before driving the motor
+	if (pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start) {
+		if (servoError) {
+			continue;
+		}
+		fire_now = false;
+	} else {
+		servoError = false;
+		pulses_without_power = MIN_PULSES_WITHOUT_POWER;
+	}
+
+	if (fire_now) {
+		float current = 90;
+		float time = 0.1;
+        for (float t = 0.0; t < time; t += 0.002) {
+          timeout_reset();
+          mc_interface_set_current(current);
+          chThdSleepMilliseconds(2);
+        }
+
+        mc_interface_set_current(0);
+		pulses_without_power = 0;
+	}
+
+   chThdSleepMicroseconds(1000);
+ }
 }
 
 static void control_callback(void) {}

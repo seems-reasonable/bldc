@@ -58,6 +58,11 @@ static volatile bool stop_now = true;
 static volatile ppm_config config;
 static volatile int pulses_without_power = 0;
 
+// Coordination with the interrupt for sampling motor parameters
+static volatile float avg_current_tot = 0.0;
+static volatile float avg_voltage_tot = 0.0;
+static volatile unsigned int sample_num = 0;
+
 static bool do_plot = false;
 static float plot_sample;
 static MUTEX_DECL(plot_mutex);
@@ -140,10 +145,6 @@ static THD_FUNCTION(flipper_solenoid_thread, arg) {
     }
     chMtxUnlock(&plot_mutex);
 
-    // Run your logic here. A lot of functionality is available in
-    // mc_interface.h.
-    // TODO(Brian): How does this get overriden by terminal commands?
-
 	// Reset the timeout if we got a pulse since last time through.
 	if (ppm_rx) {
 		ppm_rx = false;
@@ -210,7 +211,11 @@ static THD_FUNCTION(flipper_solenoid_thread, arg) {
  }
 }
 
-static void control_callback(void) {}
+static void control_callback(void) {
+	avg_current_tot += mc_interface_get_tot_current();
+	avg_voltage_tot += mc_interface_get_duty_cycle_now() * GET_INPUT_VOLTAGE();
+	sample_num++;
+}
 
 static void start_plot(void) {
   chMtxLock(&plot_mutex);
@@ -298,4 +303,246 @@ static void terminal_solenoid_plot(int argc, const char **argv) {
   } else {
     commands_printf("This command requires one argument.\n");
   }
+}
+
+/**
+ * Lock the solenoid with a current and sample the voltage and current to
+ * calculate the solenoid resistance.
+ *
+ * @param current
+ * The locking current.
+ *
+ * @param samples
+ * The number of samples to take.
+ *
+ * @param stop_after
+ * Stop motor after finishing the measurement. Otherwise, the current will
+ * still be applied after returning. Setting this to false is useful if you want
+ * to run this function again right away, without stopping the motor in between.
+ *
+ * @return
+ * The calculated motor resistance.
+ */
+static float solenoid_measure_resistance(float current, int milliseconds, bool stop_after) {
+	mc_interface_lock();
+
+	// Disable timeout
+	systime_t tout = timeout_get_timeout_msec();
+	float tout_c = timeout_get_brake_current();
+	timeout_reset();
+	timeout_configure(60000, 0.0);
+
+	// Start ramping up current.
+	mc_interface_set_current(current);
+	// Wait for the current to rise and the solenoid to actuate.
+	chThdSleepMilliseconds(40);
+
+	// Sample
+	avg_current_tot = 0.0;
+	avg_voltage_tot = 0.0;
+	sample_num = 0;
+
+	int cnt = 0;
+	while (sample_num < milliseconds) {
+		chThdSleepMilliseconds(1);
+		cnt++;
+		// Timeout
+		if (cnt > 10000) {
+			break;
+		}
+
+		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+			mc_interface_set_current(0);
+
+			timeout_configure(tout, tout_c);
+			mc_interface_unlock();
+
+			return 0.0;
+		}
+	}
+
+	const float current_avg = avg_current_tot / (float)sample_num;
+	const float voltage_avg = avg_voltage_tot / (float)sample_num;
+
+	// Stop
+	if (stop_after) {
+		mc_interface_set_current(0);
+	}
+
+	// Enable timeout
+	timeout_configure(tout, tout_c);
+	mc_interface_unlock();
+
+	return voltage_avg / current_avg;
+}
+
+// drive sin waves, after a few start sampling, take a few periods, then use
+// filter_fft on the result
+// Watch out for ramp step limit driving the sin waves
+/**
+ * Measure the motor inductance with short voltage pulses.
+ *
+ * @param duty
+ * The duty cycle to use in the pulses.
+ *
+ * @param samples
+ * The number of samples to average over.
+ *
+ * @param
+ * The current that was used for this measurement.
+ *
+ * @return
+ * The average d and q axis inductance in uH.
+ */
+static float solenoid_measure_inductance(float duty, int samples, float *curr, float *ld_lq_diff) {
+	volatile motor_all_state_t *motor = motor_now();
+
+	mc_sensor_mode sensor_mode_old = motor->m_conf->sensor_mode;
+	float f_sw_old = motor->m_conf->foc_f_sw;
+	float hfi_voltage_start_old = motor->m_conf->foc_hfi_voltage_start;
+	float hfi_voltage_run_old = motor->m_conf->foc_hfi_voltage_run;
+	float hfi_voltage_max_old = motor->m_conf->foc_hfi_voltage_max;
+	bool sample_v0_v7_old = motor->m_conf->foc_sample_v0_v7;
+	foc_hfi_samples samples_old = motor->m_conf->foc_hfi_samples;
+	bool sample_high_current_old = motor->m_conf->foc_sample_high_current;
+
+	mc_interface_lock();
+	motor->m_control_mode = CONTROL_MODE_NONE;
+	motor->m_state = MC_STATE_OFF;
+	stop_pwm_hw(motor);
+
+	motor->m_conf->foc_sensor_mode = FOC_SENSOR_MODE_HFI;
+	motor->m_conf->foc_hfi_voltage_start = duty * GET_INPUT_VOLTAGE() * (2.0 / 3.0);
+	motor->m_conf->foc_hfi_voltage_run = duty * GET_INPUT_VOLTAGE() * (2.0 / 3.0);
+	motor->m_conf->foc_hfi_voltage_max = duty * GET_INPUT_VOLTAGE() * (2.0 / 3.0);
+	motor->m_conf->foc_sample_v0_v7 = false;
+	motor->m_conf->foc_hfi_samples = HFI_SAMPLES_32;
+	motor->m_conf->foc_sample_high_current = false;
+
+	update_hfi_samples(motor->m_conf->foc_hfi_samples, motor);
+
+	chThdSleepMilliseconds(1);
+
+	timeout_reset();
+	mcpwm_foc_set_duty(0.0);
+	chThdSleepMilliseconds(1);
+
+	int ready_cnt = 0;
+	while (!motor->m_hfi.ready) {
+		chThdSleepMilliseconds(1);
+		ready_cnt++;
+		if (ready_cnt > 100) {
+			break;
+		}
+	}
+
+	if (samples < 10) {
+		samples = 10;
+	}
+
+	float l_sum = 0.0;
+	float ld_lq_diff_sum = 0.0;
+	float i_sum = 0.0;
+	float iterations = 0.0;
+
+	for (int i = 0;i < (samples / 10);i++) {
+		if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+			motor->m_id_set = 0.0;
+			motor->m_iq_set = 0.0;
+			motor->m_control_mode = CONTROL_MODE_NONE;
+			motor->m_state = MC_STATE_OFF;
+			stop_pwm_hw(motor);
+
+			motor->m_conf->foc_sensor_mode = sensor_mode_old;
+			motor->m_conf->foc_f_sw = f_sw_old;
+			motor->m_conf->foc_hfi_voltage_start = hfi_voltage_start_old;
+			motor->m_conf->foc_hfi_voltage_run = hfi_voltage_run_old;
+			motor->m_conf->foc_hfi_voltage_max = hfi_voltage_max_old;
+			motor->m_conf->foc_sample_v0_v7 = sample_v0_v7_old;
+			motor->m_conf->foc_hfi_samples = samples_old;
+			motor->m_conf->foc_sample_high_current = sample_high_current_old;
+
+			update_hfi_samples(motor->m_conf->foc_hfi_samples, motor);
+
+			mc_interface_unlock();
+
+			return 0.0;
+		}
+
+		timeout_reset();
+		mcpwm_foc_set_duty(0.0);
+		chThdSleepMilliseconds(10);
+
+		float real_bin0, imag_bin0;
+		float real_bin2, imag_bin2;
+		float real_bin0_i, imag_bin0_i;
+
+		motor->m_hfi.fft_bin0_func((float*)motor->m_hfi.buffer, &real_bin0, &imag_bin0);
+		motor->m_hfi.fft_bin2_func((float*)motor->m_hfi.buffer, &real_bin2, &imag_bin2);
+		motor->m_hfi.fft_bin0_func((float*)motor->m_hfi.buffer_current, &real_bin0_i, &imag_bin0_i);
+
+		l_sum += real_bin0;
+		ld_lq_diff_sum += 2.0 * sqrtf(SQ(real_bin2) + SQ(imag_bin2));
+		i_sum += real_bin0_i;
+
+		iterations++;
+	}
+
+	mcpwm_foc_set_current(0.0);
+
+	motor->m_conf->foc_sensor_mode = sensor_mode_old;
+	motor->m_conf->foc_f_sw = f_sw_old;
+	motor->m_conf->foc_hfi_voltage_start = hfi_voltage_start_old;
+	motor->m_conf->foc_hfi_voltage_run = hfi_voltage_run_old;
+	motor->m_conf->foc_hfi_voltage_max = hfi_voltage_max_old;
+	motor->m_conf->foc_sample_v0_v7 = sample_v0_v7_old;
+	motor->m_conf->foc_hfi_samples = samples_old;
+	motor->m_conf->foc_sample_high_current = sample_high_current_old;
+
+	update_hfi_samples(motor->m_conf->foc_hfi_samples, motor);
+
+	mc_interface_unlock();
+
+	if (curr) {
+		*curr = i_sum / iterations;
+	}
+
+	if (ld_lq_diff) {
+		*ld_lq_diff = (ld_lq_diff_sum / iterations) * 1e6 * (2.0 / 3.0);
+	}
+
+	return (l_sum / iterations) * 1e6 * (2.0 / 3.0);
+}
+
+/**
+ * Measure the motor inductance with short voltage pulses. The difference from the
+ * other function is that this one will aim for a specific measurement current. It
+ * will also use an appropriate switching frequency.
+ *
+ * @param curr_goal
+ * The measurement current to aim for.
+ *
+ * @param samples
+ * The number of samples to average over.
+ *
+ * @param *curr
+ * The current that was used for this measurement.
+ *
+ * @return
+ * The average d and q axis inductance in uH.
+ */
+static float solenoid_measure_inductance_current(float curr_goal, int samples, float *curr, float *ld_lq_diff) {
+	float duty_last = 0.0;
+	for (float i = 0.02;i < 0.5;i *= 1.5) {
+		float i_tmp;
+		solenoid_measure_inductance(i, 10, &i_tmp, 0);
+
+		duty_last = i;
+		if (i_tmp >= curr_goal) {
+			break;
+		}
+	}
+
+	float ind = solenoid_measure_inductance(duty_last, samples, curr, ld_lq_diff);
+	return ind;
 }

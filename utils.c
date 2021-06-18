@@ -642,6 +642,9 @@ uint32_t utils_crc32c(uint8_t *data, uint32_t len) {
 	return ~crc;
 }
 
+// Fills out real and imag with the first FFT term (x * 0*cos(theta)) for the 32
+// samples at real_in.
+//
 // Yes, this is only the average...
 void utils_fft32_bin0(float *real_in, float *real, float *imag) {
 	*real = 0.0;
@@ -654,6 +657,8 @@ void utils_fft32_bin0(float *real_in, float *real, float *imag) {
 	*real /= 32.0;
 }
 
+// Fills out real and imag with the second FFT term (x * 1*cos(theta)) for the 32
+// samples at real_in.
 void utils_fft32_bin1(float *real_in, float *real, float *imag) {
 	*real = 0.0;
 	*imag = 0.0;
@@ -665,6 +670,8 @@ void utils_fft32_bin1(float *real_in, float *real, float *imag) {
 	*imag /= 32.0;
 }
 
+// Fills out real and imag with the third FFT term (x * 2*cos(theta)) for the 32
+// samples at real_in.
 void utils_fft32_bin2(float *real_in, float *real, float *imag) {
 	*real = 0.0;
 	*imag = 0.0;
@@ -676,6 +683,10 @@ void utils_fft32_bin2(float *real_in, float *real, float *imag) {
 	*imag /= 32.0;
 }
 
+// Fills out real and imag with the first FFT term (x * 0*cos(theta)) for the 16
+// samples at real_in.
+//
+// Yes, this is only the average...
 void utils_fft16_bin0(float *real_in, float *real, float *imag) {
 	*real = 0.0;
 	*imag = 0.0;
@@ -687,6 +698,8 @@ void utils_fft16_bin0(float *real_in, float *real, float *imag) {
 	*real /= 16.0;
 }
 
+// Fills out real and imag with the second FFT term (x * 1*cos(theta)) for the 16
+// samples at real_in.
 void utils_fft16_bin1(float *real_in, float *real, float *imag) {
 	*real = 0.0;
 	*imag = 0.0;
@@ -698,6 +711,8 @@ void utils_fft16_bin1(float *real_in, float *real, float *imag) {
 	*imag /= 16.0;
 }
 
+// Fills out real and imag with the third FFT term (x * 2*cos(theta)) for the 16
+// samples at real_in.
 void utils_fft16_bin2(float *real_in, float *real, float *imag) {
 	*real = 0.0;
 	*imag = 0.0;
@@ -709,6 +724,10 @@ void utils_fft16_bin2(float *real_in, float *real, float *imag) {
 	*imag /= 16.0;
 }
 
+// Fills out real and imag with the first FFT term (x * 0*cos(theta)) for the 8
+// samples at real_in.
+//
+// Yes, this is only the average...
 void utils_fft8_bin0(float *real_in, float *real, float *imag) {
 	*real = 0.0;
 	*imag = 0.0;
@@ -720,6 +739,8 @@ void utils_fft8_bin0(float *real_in, float *real, float *imag) {
 	*real /= 8.0;
 }
 
+// Fills out real and imag with the second FFT term (x * 1*cos(theta)) for the 8
+// samples at real_in.
 void utils_fft8_bin1(float *real_in, float *real, float *imag) {
 	*real = 0.0;
 	*imag = 0.0;
@@ -731,6 +752,8 @@ void utils_fft8_bin1(float *real_in, float *real, float *imag) {
 	*imag /= 8.0;
 }
 
+// Fills out real and imag with the third FFT term (x * 2*cos(theta)) for the 8
+// samples at real_in.
 void utils_fft8_bin2(float *real_in, float *real, float *imag) {
 	*real = 0.0;
 	*imag = 0.0;

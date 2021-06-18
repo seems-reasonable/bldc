@@ -21,6 +21,9 @@
 #include  <math.h>
 #include  <stdint.h>
 
+// In place complex-to-complex Fast Fourier Transform.
+// real and imag must point to 2^m values.
+// dir = 1 is the forward transform, dir = -1 is the reverse.
 // Found at http://paulbourke.net/miscellaneous//dft/
 void filter_fft(int dir, int m, float *real, float *imag) {
 	long n,i,i1,j,k,i2,l,l1,l2;
@@ -88,6 +91,9 @@ void filter_fft(int dir, int m, float *real, float *imag) {
 	}
 }
 
+// Computes the Direct Fourier Transform.
+// real and imag must point to 2^m values.
+// dir = 1 is the forward transform, dir = -1 is the reverse.
 // Found at http://paulbourke.net/miscellaneous//dft/
 void filter_dft(int dir, int len, float *real, float *imag) {
 	long i,k;

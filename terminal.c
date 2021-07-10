@@ -851,11 +851,13 @@ void terminal_process_string(char *str) {
 				commands_printf("TS5700N8501 ABM: %d, SF: %s, ALMC: %s\n", encoder_ts57n8501_get_abm(), sf, almc);
 			}
 
+#if 0
 			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI) {
 				commands_printf("Low flux error (no magnet): errors: %d, error rate: %.3f %%",
 						encoder_get_no_magnet_error_cnt(),
 						(double)encoder_get_no_magnet_error_rate() * (double)100.0);
 			}
+#endif
 		}
 
 		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
@@ -879,6 +881,15 @@ void terminal_process_string(char *str) {
 					encoder_resolver_loss_of_signal_error_cnt(),
 					(double)encoder_resolver_loss_of_signal_error_rate() * (double)100.0);
 		}
+
+    if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ENCODER ||
+		mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI) {
+      commands_printf("PWM encoder value: %d, errors: %d, error rate: %.3f %%, time since reading %.3f s",
+					(unsigned int)encoder_pwm_get_val(),
+					encoder_pwm_get_error_cnt(),
+					(double)encoder_pwm_get_error_rate() * (double)100.0,
+					(double)encoder_pwm_time_since_reading());
+    }
 	} else if (strcmp(argv[0], "encoder_clear_errors") == 0) {
 		encoder_ts57n8501_reset_errors();
 		commands_printf("Done!\n");

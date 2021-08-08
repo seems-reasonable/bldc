@@ -561,6 +561,13 @@ void terminal_process_string(char *str) {
 				mempools_appconf_allocated_num(), mempools_appconf_highest(), MEMPOOLS_APPCONF_NUM - 1);
 
 		commands_printf(" ");
+	} else if (strcmp(argv[0], "sr") == 0) {
+		commands_printf("UUID: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X",
+				STM32_UUID_8[0], STM32_UUID_8[1], STM32_UUID_8[2], STM32_UUID_8[3],
+				STM32_UUID_8[4], STM32_UUID_8[5], STM32_UUID_8[6], STM32_UUID_8[7],
+				STM32_UUID_8[8], STM32_UUID_8[9], STM32_UUID_8[10], STM32_UUID_8[11]);
+		commands_printf("Firmware built for: %s", HW_NAME);
+		commands_printf("Firmware version: %s", GIT_COMMIT);
 	} else if (strcmp(argv[0], "foc_openloop") == 0) {
 		if (argc == 3) {
 			float current = -1.0;

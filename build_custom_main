@@ -1,0 +1,128 @@
+#!/bin/bash
+set -e
+
+# Copied from build_all/rebuild_all.
+
+FWPATH="./"
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+GIT_COMMIT="$(git describe --dirty=* --tags)"
+
+#################### HW 75_300 ########################
+
+COPYDIR=75_300
+rm -rf $COPYDIR
+mkdir $COPYDIR
+
+if true; then
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DHW_SOURCE=\\\"hw_75_300.c\\\" -DHW_HEADER=\\\"hw_75_300.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+fi
+
+if true; then
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"hw_75_300.c\\\" -DHW_HEADER=\\\"hw_75_300.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+fi
+
+#################### HW 75_300_R2 ########################
+
+COPYDIR=75_300_R2
+rm -rf $COPYDIR
+mkdir $COPYDIR
+
+if true; then
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DHW_SOURCE=\\\"hw_75_300.c\\\" -DHW_HEADER=\\\"hw_75_300.h\\\" -DHW75_300_REV_2 -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+fi
+
+if true; then
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"hw_75_300.c\\\" -DHW_HEADER=\\\"hw_75_300.h\\\" -DHW75_300_REV_2 -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+fi
+
+#################### HW 75_300_R3 ########################
+
+COPYDIR=75_300_R3
+rm -rf $COPYDIR
+mkdir $COPYDIR
+
+if true; then
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DHW_SOURCE=\\\"hw_75_300.c\\\" -DHW_HEADER=\\\"hw_75_300.h\\\" -DHW75_300_REV_3 -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+fi
+
+if true; then
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"hw_75_300.c\\\" -DHW_HEADER=\\\"hw_75_300.h\\\" -DHW75_300_REV_3 -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+fi
+
+#################### HW 100_250 ########################
+
+COPYDIR=100_250
+rm -rf $COPYDIR
+mkdir $COPYDIR
+
+if true; then
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DHW_SOURCE=\\\"hw_100_250.c\\\" -DHW_HEADER=\\\"hw_100_250.h\\\" -DHW100_250 -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+fi
+
+if true; then
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"hw_100_250.c\\\" -DHW_HEADER=\\\"hw_100_250.h\\\" -DHW100_250 -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+fi
+
+#################### HW 60 ########################
+
+COPYDIR=60
+rm -rf $COPYDIR
+mkdir $COPYDIR
+
+if true; then
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DHW_SOURCE=\\\"hw_60.c\\\" -DHW_HEADER=\\\"hw_60.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+fi
+
+if true; then
+# default with HW limits disabled
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"hw_60.c\\\" -DHW_HEADER=\\\"hw_60.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+fi

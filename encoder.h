@@ -31,6 +31,7 @@ void encoder_init_ad2s1205_spi(void);
 void encoder_init_sincos(float sin_gain, float sin_offset,
 						 float cos_gain, float cos_offset, float sincos_filter_constant);
 void encoder_init_ts5700n8501(void);
+void encoder_init_pwm(void);
 bool encoder_is_configured(void);
 float encoder_read_deg(void);
 float encoder_read_deg_multiturn(void);
@@ -42,6 +43,10 @@ bool encoder_index_found(void);
 uint32_t encoder_spi_get_val(void);
 uint32_t encoder_spi_get_error_cnt(void);
 float encoder_spi_get_error_rate(void);
+uint32_t encoder_pwm_get_val(void);
+uint32_t encoder_pwm_get_error_cnt(void);
+float encoder_pwm_get_error_rate(void);
+float encoder_pwm_time_since_reading(void);
 uint32_t encoder_get_no_magnet_error_cnt(void);
 float encoder_get_no_magnet_error_rate(void);
 uint32_t encoder_resolver_loss_of_tracking_error_cnt(void);

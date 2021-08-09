@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <string.h>
 
+// 22ms frame period so this is ~0.1 seconds.
 #define MIN_PULSES_WITHOUT_POWER		50
 
 // Threads
@@ -56,6 +57,7 @@ static void terminal_solenoid_plot(int argc, const char **argv);
 static volatile bool is_running = false;
 static volatile bool stop_now = true;
 static volatile ppm_config config;
+static volatile float main_time, main_current, self_right_time, self_right_current;
 static volatile int pulses_without_power = 0;
 
 static bool do_plot = false;
@@ -99,6 +101,22 @@ void app_custom_stop(void) {
 
 void app_custom_configure(app_configuration *conf) {
 	config = conf->app_ppm_conf;
+	main_time = conf->app_adc_conf.voltage_start / 10;
+	main_current = conf->app_adc_conf.voltage_end * 100;
+	self_right_time = conf->app_adc_conf.voltage2_start / 10;
+	self_right_current = conf->app_adc_conf.voltage2_end * 100;
+	if (main_time > 0.2) {
+		main_time = 0.2;
+	}
+	if (self_right_time > 0.2) {
+		self_right_time = 0.2;
+	}
+	if (main_current > 220) {
+		main_current = 220;
+	}
+	if (self_right_current > 220) {
+		self_right_current = 220;
+	}
 	pulses_without_power = 0;
 }
 
@@ -176,33 +194,42 @@ static THD_FUNCTION(flipper_solenoid_thread, arg) {
 	// Apply throttle curve
 	servo_val = utils_throttle_curve(servo_val, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
 
-	bool fire_now = servo_val > 0.5;
+	bool fire_main_now = servo_val > 0.5;
+	bool fire_self_right_now = servo_val < -0.5;
 
-	if (fabsf(servo_val) < 0.001) {
+	if (fabsf(servo_val) < 0.1) {
 		pulses_without_power++;
 	}
 
 	//Safe start : If startup, servo timeout or fault, check if idle has been verified for some pulses before driving the motor
-	if (pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start) {
+	if (pulses_without_power < MIN_PULSES_WITHOUT_POWER) {
 		if (servoError) {
 			continue;
 		}
-		fire_now = false;
+		fire_main_now = false;
+		fire_self_right_now = false;
 	} else {
 		servoError = false;
 		pulses_without_power = MIN_PULSES_WITHOUT_POWER;
 	}
 
-	if (fire_now) {
-		float current = 90;
-		float time = 0.1;
-        for (float t = 0.0; t < time; t += 0.002) {
-          timeout_reset();
-          mc_interface_set_current(current);
-          chThdSleepMilliseconds(2);
-        }
+	if (fire_main_now) {
+		for (float t = 0.0; t < main_time; t += 0.002) {
+		  timeout_reset();
+		  mc_interface_set_current(main_current);
+		  chThdSleepMilliseconds(2);
+		}
 
-        mc_interface_set_current(0);
+		mc_interface_set_current(0);
+		pulses_without_power = 0;
+	} else if (fire_self_right_now) {
+		for (float t = 0.0; t < self_right_time; t += 0.002) {
+		  timeout_reset();
+		  mc_interface_set_current(self_right_current);
+		  chThdSleepMilliseconds(2);
+		}
+
+		mc_interface_set_current(0);
 		pulses_without_power = 0;
 	}
 

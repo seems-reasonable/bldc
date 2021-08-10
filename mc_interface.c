@@ -2183,13 +2183,13 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			mcpwm_foc_is_using_encoder() &&
 			encoder_pwm_get_error_rate() > 0.05) {
-		mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1, false);
+		mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE, !is_motor_1, false);
 	}
 
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
 			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
 			mcpwm_foc_is_using_encoder() &&
-			encoder_pwm_time_since_reading() > 0.2) {
+			encoder_pwm_time_since_reading() > 0.2f) {
 		mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1, false);
 	}
 

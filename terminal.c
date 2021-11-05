@@ -935,6 +935,14 @@ void terminal_process_string(char *str) {
 					encoder_resolver_loss_of_signal_error_cnt(),
 					(double)encoder_resolver_loss_of_signal_error_rate() * (double)100.0);
 		}
+
+		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ENCODER) {
+			commands_printf("PWM encoder value: %d, errors: %d, error rate: %.3f %%, time since reading %.3f s",
+					(unsigned int)encoder_pwm_get_val(),
+					encoder_pwm_get_error_cnt(),
+					(double)encoder_pwm_get_error_rate() * (double)100.0,
+					(double)encoder_pwm_time_since_reading());
+		}
 	} else if (strcmp(argv[0], "encoder_clear_errors") == 0) {
 		encoder_ts57n8501_reset_errors();
 		commands_printf("Done!\n");

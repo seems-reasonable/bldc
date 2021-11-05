@@ -21,6 +21,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
+#include "timer.h"
 #include "hw.h"
 #include "mc_interface.h"
 #include "utils.h"
@@ -75,6 +76,11 @@
 #define SPI_SW_CS_PIN				HW_HALL_ENC_PIN3
 #endif
 
+#define PWM_TIM_PRESCALER 4
+#define PWM_DUTY_MIN (16.0f / 4119.0f)
+#define PWM_DUTY_MAX (4111.0f / 4119.0f)
+#define PWM_DUTY_TOLERANCE (2.0f / 4119.0f)
+
 // Private types
 typedef enum {
 	ENCODER_MODE_NONE = 0,
@@ -83,7 +89,8 @@ typedef enum {
 	RESOLVER_MODE_AD2S1205,
 	ENCODER_MODE_SINCOS,
 	ENCODER_MODE_TS5700N8501,
-	ENCODER_MODE_MT6816_SPI
+	ENCODER_MODE_MT6816_SPI,
+	ENCODER_MODE_PWM
 } encoder_mode;
 
 // Private variables
@@ -94,8 +101,14 @@ static float last_enc_angle = 0.0;
 static uint32_t spi_val = 0;
 static uint8_t spi_data_err_raised = 0;
 static uint32_t spi_error_cnt = 0;
+static uint32_t pwm_error_cnt = 0;
 static uint32_t encoder_no_magnet_error_cnt = 0;
 static float spi_error_rate = 0.0;
+static float pwm_error_rate = 0.0;
+static float pwm_last_period = -1;
+static float last_pwm_measured_enc_angle = 0.0;
+static volatile uint32_t pwm_last_measurement_time = 0;
+static float pwm_last_velocity = 0;
 static float encoder_no_magnet_error_rate = 0.0;
 static float resolver_loss_of_tracking_error_rate = 0.0;
 static float resolver_degradation_of_signal_error_rate = 0.0;
@@ -183,6 +196,24 @@ uint32_t encoder_spi_get_val(void) {
 
 float encoder_spi_get_error_rate(void) {
 	return spi_error_rate;
+}
+
+uint32_t encoder_pwm_get_error_cnt(void) {
+	return pwm_error_cnt;
+}
+
+uint32_t encoder_pwm_get_val(void) {
+	float result = last_enc_angle + (pwm_last_velocity * timer_seconds_elapsed_since(pwm_last_measurement_time));
+	utils_norm_angle(&result);
+	return result;
+}
+
+float encoder_pwm_get_error_rate(void) {
+	return pwm_error_rate;
+}
+
+float encoder_pwm_time_since_reading(void) {
+	return timer_seconds_elapsed_since(pwm_last_measurement_time);
 }
 
 uint32_t encoder_get_no_magnet_error_cnt(void) {
@@ -413,6 +444,59 @@ void encoder_init_mt6816_spi(void) {
 #endif
 }
 
+// We configure the hardware timer like section 18.3.6 "PWM input mode" in the
+// reference manual documents.
+void encoder_init_pwm(void) {
+	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+
+	// Enable timer clock
+	HW_ENC_TIM_CLK_EN();
+
+	palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_ALTERNATE(HW_ENC_TIM_AF));
+
+	// Time Base configuration
+	// The timer's base clock is SYSTEM_CORE_CLOCK / 2.
+	// This can be up to 0xFFFF. It just divides the clock for the counter itself.
+	TIM_TimeBaseStructure.TIM_Prescaler = PWM_TIM_PRESCALER - 1;
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
+	// This divides the clock used for the input filters in some filter modes.
+	// This is divided from the base clock, not the prescaled one used for counting.
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(HW_ENC_TIM, &TIM_TimeBaseStructure);
+
+	TIM_ICInitTypeDef TIM_ICInitStructure;
+	TIM_ICInitStructure.TIM_Channel = TIM_Channel_1;
+	TIM_ICInitStructure.TIM_ICPolarity = TIM_ICPolarity_Falling;
+	TIM_ICInitStructure.TIM_ICSelection = TIM_ICSelection_IndirectTI;
+	TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
+	// Sampling from the divided (for input filters, not the counter prescaler)
+	// clock, divided by 32, and require 8 identical samples.
+	TIM_ICInitStructure.TIM_ICFilter = 15;
+	TIM_PWMIConfig(HW_ENC_TIM, &TIM_ICInitStructure);
+
+	// Now make the timer reset itself on the rising edge.
+	// Note that this has to be TI2, because the indirect input selection for the
+	// input capture channel itself doesn't affect this setting. This means input
+	// capture channel 1 needs to be the falling edge (configured above).
+	TIM_SelectInputTrigger(TIM3, TIM_TS_TI2FP2);
+	TIM_SelectSlaveMode(TIM3, TIM_SlaveMode_Reset);
+	TIM_SelectMasterSlaveMode(TIM3, TIM_MasterSlaveMode_Enable);
+
+	nvicEnableVector(HW_ENC_TIM_ISR_CH, 6);
+
+	// Enable interrupt on capture
+	TIM_ITConfig(HW_ENC_TIM, TIM_IT_CC2, ENABLE);
+
+	// Enable timer
+	TIM_Cmd(HW_ENC_TIM, ENABLE);
+
+	mode = ENCODER_MODE_PWM;
+	index_found = false;
+	pwm_error_rate = 0.0;
+}
+
 void encoder_init_ad2s1205_spi(void) {
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 
@@ -525,6 +609,10 @@ float encoder_read_deg(void) {
 	case RESOLVER_MODE_AD2S1205:
 	case ENCODER_MODE_TS5700N8501:
 		angle = last_enc_angle;
+		break;
+
+	case ENCODER_MODE_PWM:
+		angle = encoder_pwm_get_val();
 		break;
 
 #ifdef HW_HAS_SIN_COS_ENCODER
@@ -920,6 +1008,35 @@ void encoder_tim_isr(void) {
 			{
 				last_enc_angle = ((float)pos * 360.0) / 4096.0;
 			}
+		}
+	}
+
+	if(mode == ENCODER_MODE_PWM) {
+		uint32_t period = TIM_GetCapture2(HW_ENC_TIM);
+		uint32_t on_time = TIM_GetCapture1(HW_ENC_TIM);
+		float period_float = (float)period;
+		float duty_cycle = (float)on_time / period_float;
+		float period_seconds = period_float / (float)(SYSTEM_CORE_CLOCK / 2 / PWM_TIM_PRESCALER);
+		if (duty_cycle > PWM_DUTY_MAX + PWM_DUTY_TOLERANCE ||
+			duty_cycle < PWM_DUTY_MIN - PWM_DUTY_TOLERANCE) {
+			++pwm_error_cnt;
+			UTILS_LP_FAST(pwm_error_rate, 1.0f, period_seconds);
+			pwm_last_period = -1;
+			pwm_last_velocity = 0;
+		} else {
+			utils_truncate_number(&duty_cycle, PWM_DUTY_MIN, PWM_DUTY_MAX);
+			float new_pwm_measured_enc_angle = utils_calc_ratio(PWM_DUTY_MIN, PWM_DUTY_MAX, duty_cycle) * 360.0f;
+			last_enc_angle = new_pwm_measured_enc_angle;
+			pwm_last_measurement_time = timer_time_now();
+			if (pwm_last_period > 0) {
+				pwm_last_velocity = utils_angle_difference(last_enc_angle, last_pwm_measured_enc_angle) / pwm_last_period;
+				// The angle was measured at the beginning of the pulse, advance by the time it took us to receive it.
+				last_enc_angle += pwm_last_velocity * period_seconds;
+			}
+			last_pwm_measured_enc_angle = new_pwm_measured_enc_angle;
+			pwm_last_period = period_seconds;
+			index_found = true;
+			UTILS_LP_FAST(pwm_error_rate, 0.0f, period_seconds);
 		}
 	}
 }

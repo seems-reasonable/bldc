@@ -2495,9 +2495,10 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 
 	if(motor->m_conf.motor_type == MOTOR_TYPE_FOC &&
 			motor->m_conf.foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
-			motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ENCODER) {
+			(motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ENCODER ||
+			motor->m_conf.m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI)) {
 		if (encoder_pwm_time_since_reading() > 0.2f)
-			mc_interface_fault_stop(FAULT_CODE_ENCODER_LOST, !is_motor_1, false);
+			mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, !is_motor_1, false);
 		if (encoder_get_no_magnet_error_rate() > 0.05f)
 			mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, !is_motor_1, false);
 	}

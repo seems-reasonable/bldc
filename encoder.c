@@ -604,12 +604,12 @@ float encoder_read_deg(void) {
 		break;
 
 	case ENCODER_MODE_AS5047P_SPI:
-	case ENCODER_MODE_MT6816_SPI:
 	case RESOLVER_MODE_AD2S1205:
 	case ENCODER_MODE_TS5700N8501:
 		angle = last_enc_angle;
 		break;
 
+	case ENCODER_MODE_MT6816_SPI:
 	case ENCODER_MODE_PWM:
 		angle = encoder_pwm_get_val();
 		break;
@@ -902,7 +902,7 @@ void encoder_tim_isr(void) {
 		}		
 	}
 
-#ifdef HW_SPI_DEV
+#if 0
 	if(mode == ENCODER_MODE_MT6816_SPI) {
 		uint16_t reg_data_03;
 		uint16_t reg_data_04;

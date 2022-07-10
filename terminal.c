@@ -871,7 +871,6 @@ void terminal_process_string(char *str) {
 		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 
 		if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
-				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_MT6816_SPI ||
 				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AD2S1205 ||
 				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501 ||
 				mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {

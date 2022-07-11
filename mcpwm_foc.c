@@ -3063,20 +3063,19 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		float diff_observer = utils_angle_difference_rad(motor_now->m_phase_now_observer, motor_now->m_phase_before_speed_est_observer);
 		utils_truncate_number(&diff_observer, -M_PI / 3.0, M_PI / 3.0);
 
-		UTILS_LP_FAST(motor_now->m_speed_est_fast, diff / dt, 0.01);
-		UTILS_NAN_ZERO(motor_now->m_speed_est_fast);
+		UTILS_LP_FAST(motor_now->m_speed_est_encoder, diff_encoder / dt, 0.01);
+		UTILS_NAN_ZERO(motor_now->m_speed_est_encoder);
+
+		UTILS_LP_FAST(motor_now->m_speed_est_observer, diff_observer / dt, 0.01);
+		UTILS_NAN_ZERO(motor_now->m_speed_est_observer);
+
+		motor_now->m_speed_est_fast = motor_now->m_using_encoder ? motor_now->m_speed_est_encoder : motor_now->m_speed_est_observer;
 
 		UTILS_LP_FAST(motor_now->m_speed_est_faster, diff / dt, 0.2);
 		UTILS_NAN_ZERO(motor_now->m_speed_est_faster);
 
 		// pll wind-up protection
 		utils_truncate_number_abs((float*)&motor_now->m_pll_speed, fabsf(motor_now->m_speed_est_fast) * 3.0);
-
-		UTILS_LP_FAST(motor_now->m_speed_est_encoder, diff_encoder / dt, 0.1);
-		UTILS_NAN_ZERO(motor_now->m_speed_est_encoder);
-
-		UTILS_LP_FAST(motor_now->m_speed_est_observer, diff_observer / dt, 0.1);
-		UTILS_NAN_ZERO(motor_now->m_speed_est_observer);
 
 		motor_now->m_phase_before_speed_est = motor_now->m_motor_state.phase;
 		motor_now->m_phase_before_speed_est_encoder = motor_now->m_phase_now_encoder;

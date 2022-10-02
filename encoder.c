@@ -21,6 +21,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
+#include "timer.h"
 #include "hw.h"
 #include "mc_interface.h"
 #include "utils.h"
@@ -106,7 +107,7 @@ static float spi_error_rate = 0.0;
 static float pwm_error_rate = 0.0;
 static float pwm_last_period = -1;
 static float last_pwm_measured_enc_angle = 0.0;
-static volatile systime_t pwm_last_measurement_time = 0;
+static volatile uint32_t pwm_last_measurement_time = 0;
 static float pwm_last_velocity = 0;
 static float encoder_no_magnet_error_rate = 0.0;
 static float resolver_loss_of_tracking_error_rate = 0.0;
@@ -202,7 +203,7 @@ uint32_t encoder_pwm_get_error_cnt(void) {
 }
 
 uint32_t encoder_pwm_get_val(void) {
-	float result = last_enc_angle + (pwm_last_velocity * (float)chVTTimeElapsedSinceX(pwm_last_measurement_time) / (float)CH_CFG_ST_FREQUENCY);
+	float result = last_enc_angle + (pwm_last_velocity * timer_seconds_elapsed_since(pwm_last_measurement_time));
 	utils_norm_angle(&result);
 	return result;
 }
@@ -212,7 +213,7 @@ float encoder_pwm_get_error_rate(void) {
 }
 
 float encoder_pwm_time_since_reading(void) {
-	return (float)chVTTimeElapsedSinceX(pwm_last_measurement_time) / (float)CH_CFG_ST_FREQUENCY;
+	return timer_seconds_elapsed_since(pwm_last_measurement_time);
 }
 
 uint32_t encoder_get_no_magnet_error_cnt(void) {
@@ -1026,7 +1027,7 @@ void encoder_tim_isr(void) {
 			utils_truncate_number(&duty_cycle, PWM_DUTY_MIN, PWM_DUTY_MAX);
 			float new_pwm_measured_enc_angle = utils_calc_ratio(PWM_DUTY_MIN, PWM_DUTY_MAX, duty_cycle) * 360.0f;
 			last_enc_angle = new_pwm_measured_enc_angle;
-			pwm_last_measurement_time = chVTGetSystemTime();
+			pwm_last_measurement_time = timer_time_now();
 			if (pwm_last_period > 0) {
 				pwm_last_velocity = utils_angle_difference(last_enc_angle, last_pwm_measured_enc_angle) / pwm_last_period;
 				// The angle was measured at the beginning of the pulse, advance by the time it took us to receive it.

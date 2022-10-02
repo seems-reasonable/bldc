@@ -46,7 +46,11 @@ uint32_t timer_time_now(void) {
 
 float timer_seconds_elapsed_since(uint32_t time) {
 	uint32_t diff = TIM5->CNT - time;
-	return (float)diff / (float)TIMER_HZ;
+	float float_diff = diff;
+	if (diff > (1U << 31)) {
+		float_diff += 0x100000000f;
+	}
+	return float_diff / (float)TIMER_HZ;
 }
 
 /**

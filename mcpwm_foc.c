@@ -56,6 +56,9 @@ typedef struct {
 	float max_duty;
 	float duty_now;
 	float phase;
+	// The same as phase, but without information from the encoder, so we can use it to decide
+	// when to use the encoder vs not.
+	float phase_no_encoder;
 	float phase_cos;
 	float phase_sin;
 	float i_alpha;
@@ -144,8 +147,11 @@ typedef struct {
 	float m_pos_pid_now;
 	float m_gamma_now;
 	bool m_using_encoder;
+	int cycles_since_encoder_switch;
 	float m_speed_est_fast;
 	float m_speed_est_faster;
+	float m_speed_est_encoder;
+	float m_speed_est_no_encoder;
 	int m_duty1_next, m_duty2_next, m_duty3_next;
 	bool m_duty_next_set;
 	hfi_state_t m_hfi;
@@ -165,6 +171,8 @@ typedef struct {
 	float m_x1_prev;
 	float m_x2_prev;
 	float m_phase_before_speed_est;
+	float m_phase_before_speed_est_encoder;
+	float m_phase_before_speed_est_no_encoder;
 	int m_tacho_step_last;
 	float m_pid_div_angle_last;
 	float m_pid_div_angle_accumulator;
@@ -216,7 +224,8 @@ static void run_pid_control_pos(float dt, volatile motor_all_state_t *motor);
 static void run_pid_control_speed(float dt, volatile motor_all_state_t *motor);
 static void stop_pwm_hw(volatile motor_all_state_t *motor);
 static void start_pwm_hw(volatile motor_all_state_t *motor);
-static float correct_encoder(float obs_angle, float enc_angle, float speed, float sl_erpm, volatile motor_all_state_t *motor);
+static void correct_encoder(float obs_angle, float enc_angle, float no_encoder_speed,
+				float encoder_speed, float sl_erpm, volatile motor_all_state_t *motor);
 static float correct_hall(float angle, float dt, volatile motor_all_state_t *motor);
 static void terminal_tmp(int argc, const char **argv);
 static void terminal_plot_hfi(int argc, const char **argv);
@@ -2781,15 +2790,17 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			switch (conf_now->foc_sensor_mode) {
 			case FOC_SENSOR_MODE_ENCODER:
 				if (encoder_index_found() || virtual_motor_is_connected()) {
-					motor_now->m_motor_state.phase = correct_encoder(
+					correct_encoder(
 							motor_now->m_phase_now_observer,
 							motor_now->m_phase_now_encoder,
-							motor_now->m_speed_est_fast,
+							motor_now->m_speed_est_no_encoder,
+							motor_now->m_speed_est_encoder,
 							conf_now->foc_sl_erpm,
 							motor_now);
 				} else {
 					// Rotate the motor in open loop if the index isn't found.
 					motor_now->m_motor_state.phase = motor_now->m_phase_now_encoder_no_index;
+					motor_now->m_motor_state.phase_no_encoder = motor_now->m_motor_state.phase;
 				}
 
 				if (!motor_now->m_phase_override && motor_now->m_control_mode != CONTROL_MODE_OPENLOOP_PHASE) {
@@ -2799,6 +2810,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			case FOC_SENSOR_MODE_HALL:
 				motor_now->m_phase_now_observer = correct_hall(motor_now->m_phase_now_observer, dt, motor_now);
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
+				motor_now->m_motor_state.phase_no_encoder = motor_now->m_motor_state.phase;
 
 				if (!motor_now->m_phase_override && motor_now->m_control_mode != CONTROL_MODE_OPENLOOP_PHASE) {
 					id_set_tmp = 0.0;
@@ -2812,6 +2824,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				} else {
 					motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
 				}
+				motor_now->m_motor_state.phase_no_encoder = motor_now->m_motor_state.phase;
 
 				if (!motor_now->m_phase_override && motor_now->m_control_mode != CONTROL_MODE_OPENLOOP_PHASE) {
 					id_set_tmp = 0.0;
@@ -2820,6 +2833,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 			case FOC_SENSOR_MODE_HFI_START:
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
+				motor_now->m_motor_state.phase_no_encoder = motor_now->m_motor_state.phase;
 
 				if (motor_now->m_phase_observer_override) {
 					motor_now->m_hfi.est_done_cnt = 0;
@@ -2846,10 +2860,11 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 					motor_now->m_hfi.angle = motor_now->m_phase_now_observer;
 				}
 
-				motor_now->m_motor_state.phase = correct_encoder(
+				correct_encoder(
 						motor_now->m_phase_now_observer,
 						motor_now->m_hfi.angle,
-						motor_now->m_speed_est_fast,
+						motor_now->m_speed_est_no_encoder,
+						motor_now->m_speed_est_encoder,
 						conf_now->foc_sl_erpm_hfi,
 						motor_now);
 
@@ -2875,6 +2890,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			if (motor_now->m_phase_override) {
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_override;
 			}
+			motor_now->m_motor_state.phase_no_encoder = motor_now->m_motor_state.phase;
 
 			utils_fast_sincos_better(motor_now->m_motor_state.phase,
 					(float*)&motor_now->m_motor_state.phase_sin,
@@ -2964,23 +2980,27 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		{
 			switch (conf_now->foc_sensor_mode) {
 			case FOC_SENSOR_MODE_ENCODER:
-				motor_now->m_motor_state.phase = correct_encoder(
+				correct_encoder(
 						motor_now->m_phase_now_observer,
 						motor_now->m_phase_now_encoder,
-						motor_now->m_speed_est_fast,
+						motor_now->m_speed_est_no_encoder,
+						motor_now->m_speed_est_encoder,
 						conf_now->foc_sl_erpm,
 						motor_now);
 				break;
 			case FOC_SENSOR_MODE_HALL:
 				motor_now->m_phase_now_observer = correct_hall(motor_now->m_phase_now_observer, dt, motor_now);
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
+				motor_now->m_motor_state.phase_no_encoder = motor_now->m_motor_state.phase;
 				break;
 			case FOC_SENSOR_MODE_SENSORLESS:
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
+				motor_now->m_motor_state.phase_no_encoder = motor_now->m_motor_state.phase;
 				break;
 			case FOC_SENSOR_MODE_HFI:
 			case FOC_SENSOR_MODE_HFI_START:{
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
+				motor_now->m_motor_state.phase_no_encoder = motor_now->m_motor_state.phase;
 				if (fabsf(RADPS2RPM_f(motor_now->m_pll_speed)) < (conf_now->foc_sl_erpm_hfi * 1.1)) {
 					motor_now->m_hfi.est_done_cnt = 0;
 					motor_now->m_hfi.flip_cnt = 0;
@@ -3049,9 +3069,18 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	{
 		float diff = utils_angle_difference_rad(motor_now->m_motor_state.phase, motor_now->m_phase_before_speed_est);
 		utils_truncate_number(&diff, -M_PI / 3.0, M_PI / 3.0);
+		float diff_no_encoder = utils_angle_difference_rad(motor_now->m_motor_state.phase_no_encoder, motor_now->m_phase_before_speed_est_no_encoder);
+		utils_truncate_number(&diff_no_encoder, -M_PI / 3.0, M_PI / 3.0);
+		float diff_encoder = utils_angle_difference_rad(motor_now->m_phase_now_encoder, motor_now->m_phase_before_speed_est_encoder);
+		utils_truncate_number(&diff_encoder, -M_PI / 3.0, M_PI / 3.0);
 
-		UTILS_LP_FAST(motor_now->m_speed_est_fast, diff / dt, 0.01);
-		UTILS_NAN_ZERO(motor_now->m_speed_est_fast);
+		UTILS_LP_FAST(motor_now->m_speed_est_no_encoder, diff_no_encoder / dt, 0.01);
+		UTILS_NAN_ZERO(motor_now->m_speed_est_no_encoder);
+
+		UTILS_LP_FAST(motor_now->m_speed_est_encoder, diff_encoder / dt, 0.003);
+		UTILS_NAN_ZERO(motor_now->m_speed_est_encoder);
+
+		motor_now->m_speed_est_fast = motor_now->m_using_encoder ? motor_now->m_speed_est_encoder : motor_now->m_speed_est_no_encoder;
 
 		UTILS_LP_FAST(motor_now->m_speed_est_faster, diff / dt, 0.2);
 		UTILS_NAN_ZERO(motor_now->m_speed_est_faster);
@@ -3060,6 +3089,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		utils_truncate_number_abs((float*)&motor_now->m_pll_speed, fabsf(motor_now->m_speed_est_fast) * 3.0);
 
 		motor_now->m_phase_before_speed_est = motor_now->m_motor_state.phase;
+		motor_now->m_phase_before_speed_est_no_encoder = motor_now->m_motor_state.phase_no_encoder;
+		motor_now->m_phase_before_speed_est_encoder = motor_now->m_phase_now_encoder;
 	}
 
 	// Update tachometer (resolution = 60 deg as for BLDC)
@@ -4613,23 +4644,36 @@ static void start_pwm_hw(volatile motor_all_state_t *motor) {
 	}
 }
 
-static float correct_encoder(float obs_angle, float enc_angle, float speed,
-							 float sl_erpm, volatile motor_all_state_t *motor) {
-	float rpm_abs = fabsf(RADPS2RPM_f(speed));
-
-	// Hysteresis 5 % of total speed
-	float hyst = sl_erpm * 0.05;
-	if (motor->m_using_encoder) {
-		if (rpm_abs > (sl_erpm + hyst)) {
-			motor->m_using_encoder = false;
-		}
+static void correct_encoder(float obs_angle, float enc_angle, float no_encoder_speed,
+							float encoder_speed, float sl_erpm, volatile motor_all_state_t *motor) {
+	bool using_encoder_now = motor->m_using_encoder;
+	int cycles_since_switch = motor->cycles_since_encoder_switch;
+	if (cycles_since_switch < 40) {
+		// Not going to consider a switch this soon, to avoid the false velocity
+		// from the switch triggering our threshold.
+		motor->cycles_since_encoder_switch = cycles_since_switch + 1;
 	} else {
-		if (rpm_abs < (sl_erpm- hyst)) {
-			motor->m_using_encoder = true;
+		float encoder_rpm_abs = fabsf(RADPS2RPM_f(encoder_speed));
+		float no_encoder_rpm_abs = fabsf(RADPS2RPM_f(no_encoder_speed));
+		if (using_encoder_now) {
+			// Switch over if the observer sees a fast enough speed to be legitimate,
+			// because an encoder operating at too high a speed might be skipping
+			// counts and look like the motor is orders of magnitude slower than it
+			// actually is.
+			if (encoder_rpm_abs > (sl_erpm * 1.1) || no_encoder_rpm_abs > (sl_erpm * 2)) {
+				motor->m_using_encoder = using_encoder_now = false;
+				motor->cycles_since_encoder_switch = 0;
+			}
+		} else {
+			if (no_encoder_rpm_abs < (sl_erpm * 0.9)) {
+				motor->m_using_encoder = using_encoder_now = true;
+				motor->cycles_since_encoder_switch = 0;
+			}
 		}
 	}
 
-	return motor->m_using_encoder ? enc_angle : obs_angle;
+	motor->m_motor_state.phase = using_encoder_now ? enc_angle : obs_angle;
+	motor->m_motor_state.phase_no_encoder = obs_angle;
 }
 
 static float correct_hall(float angle, float dt, volatile motor_all_state_t *motor) {

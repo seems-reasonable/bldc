@@ -226,6 +226,7 @@ void mc_interface_init(void) {
 #endif
 
 	case SENSOR_PORT_MODE_PWM_ENCODER:
+		SENSOR_PORT_5V();
 		encoder_init_pwm();
 		break;
 

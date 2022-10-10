@@ -198,3 +198,51 @@ make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"hw_60.c\\\" -DHW_HEADER
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 fi
+
+#################### HW 60_75 ########################
+
+COPYDIR=60_75
+rm -rf $COPYDIR
+mkdir $COPYDIR
+
+if true; then
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DHW_SOURCE=\\\"hw_60_75_core.c\\\" -DHW_HEADER=\\\"hw_60_75_core.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+fi
+
+if true; then
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"hw_60_75_core.c\\\" -DHW_HEADER=\\\"hw_60_75_core.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+fi
+
+#################### HW 60_75_MK2 ########################
+
+COPYDIR=60_75_MK2
+rm -rf $COPYDIR
+mkdir $COPYDIR
+
+if true; then
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DHW_SOURCE=\\\"hw_60_75_core.c\\\" -DHW_HEADER=\\\"hw_60_75_core.h\\\" -DHW_60_75_IS_MK2 -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+fi
+
+if true; then
+# default with HW limits disables
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"hw_60_75_core.c\\\" -DHW_HEADER=\\\"hw_60_75_core.h\\\" -DHW_60_75_IS_MK2 -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+fi

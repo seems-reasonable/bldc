@@ -29,7 +29,7 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
-#define HW_HAS_PHASE_FILTERS
+//#define HW_HAS_PHASE_FILTERS
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB
@@ -259,8 +259,8 @@
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
-#ifndef MCCONF_FOC_F_ZV
-#define MCCONF_FOC_F_ZV					30000.0
+#ifndef MCCONF_FOC_F_SW
+#define MCCONF_FOC_F_SW					30000.0
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT		140.0	// The maximum absolute current above which a fault is generated

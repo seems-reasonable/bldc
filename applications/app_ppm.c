@@ -28,6 +28,9 @@
 #include "utils.h"
 #include "comm_can.h"
 #include <math.h>
+#ifdef HW_DO_CRSF_OUT
+#include "crsf/crsf.h"
+#endif
 
 // Only available if servo output is not active
 #if !SERVO_OUT_ENABLE
@@ -76,6 +79,9 @@ void app_ppm_start(void) {
 	stop_now = false;
 	chThdCreateStatic(ppm_thread_wa, sizeof(ppm_thread_wa), NORMALPRIO, ppm_thread, NULL);
 #endif
+#ifdef HW_DO_CRSF_OUT
+	crsf_start();
+#endif
 }
 
 void app_ppm_stop(void) {
@@ -90,6 +96,9 @@ void app_ppm_stop(void) {
 	while(is_running) {
 		chThdSleepMilliseconds(1);
 	}
+#endif
+#ifdef HW_DO_CRSF_OUT
+	crsf_stop();
 #endif
 }
 
@@ -117,6 +126,9 @@ static THD_FUNCTION(ppm_thread, arg) {
 
 	servodec_set_pulse_options(config.pulse_start, config.pulse_end, config.median_filter);
 	servodec_init(servodec_func);
+#ifdef HW_DO_CRSF_OUT
+	crsf_init();
+#endif
 	is_running = true;
 
 	for(;;) {
@@ -131,6 +143,10 @@ static THD_FUNCTION(ppm_thread, arg) {
 			ppm_rx = false;
 			timeout_reset();
 		}
+
+#ifdef HW_DO_CRSF_OUT
+		crsf_publish_telemetry();
+#endif
 
 		const volatile mc_configuration *mcconf = mc_interface_get_configuration();
 		const float rpm_now = mc_interface_get_rpm();

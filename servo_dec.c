@@ -109,7 +109,7 @@ static ICUConfig icucfg = {
  */
 void servodec_init(void (*d_func)(void)) {
 	icuStart(&HW_ICU_DEV, &icucfg);
-	palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_ALTERNATE(HW_ICU_GPIO_AF));
+	palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_ALTERNATE(HW_ICU_GPIO_AF) | PAL_STM32_PUDR_PULLUP);
 	icuStartCapture(&HW_ICU_DEV);
 	icuEnableNotifications(&HW_ICU_DEV);
 
@@ -130,7 +130,7 @@ void servodec_init(void (*d_func)(void)) {
 void servodec_stop(void) {
 	if (is_running) {
 		icuStop(&HW_ICU_DEV);
-		palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT);
+		palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT_PULLUP);
 		pulse_start = 1.0;
 		pulse_end = 2.0;
 		use_median_filter = false;

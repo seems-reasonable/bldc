@@ -203,7 +203,9 @@ static void connect_virtual_motor(float ml , float J, float Vbus){
 
 		//sets virtual motor variables
 		ADC_Value[ ADC_IND_TEMP_MOS ] = 2048;
+#ifdef  ADC_IND_TEMP_MOTOR
 		ADC_Value[ ADC_IND_TEMP_MOTOR ] = 2048;
+#endif
 #ifdef 	HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
 		//we load 1 to get the transfer function indirectly
 		ADC_Value[ ADC_IND_VOUT_GATE_DRV ] = 1;

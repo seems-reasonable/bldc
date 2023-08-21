@@ -1910,6 +1910,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		break;
 
 	case TEMP_SENSOR_KTY83_122: {
+#ifdef NTC_RES_MOTOR
 		// KTY83_122 datasheet used to approximate resistance at given temperature to cubic polynom
 		// https://docs.google.com/spreadsheets/d/1iJA66biczfaXRNClSsrVF9RJuSAKoDG-bnRZFMOcuwU/edit?usp=sharing
 		// Thanks to: https://vasilisks.wordpress.com/2017/12/14/getting-temperature-from-ntc-kty83-kty84-on-mcu/#more-645
@@ -1918,6 +1919,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		float pow2 = res * res;
 		temp_motor = 0.0000000102114874947423 * pow2 * res - 0.000069967997703501 * pow2 +
 				0.243402040973194 * res - 160.145048329356;
+#else
+    temp_motor = 0;
+#endif
 	}
 	break;
 	}

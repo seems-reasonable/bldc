@@ -423,10 +423,20 @@
 #if defined(NTC_RES_MOTOR) && defined(ADC_IND_TEMP_MOTOR)
 #define NTC100K_TEMP_MOTOR(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 100000.0) / beta) + (1.0 / 298.15)) - 273.15)
 #define NTC100K_TEMP_MOTOR_2(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) / 100000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#ifndef NTC_TEMP_MOTOR_2
+#define NTC_TEMP_MOTOR_2(beta)	NTC_TEMP_MOTOR(beta)
+#endif
+#ifndef ADC_IND_TEMP_MOTOR_2
+#define ADC_IND_TEMP_MOTOR_2	ADC_IND_TEMP_MOTOR
+#endif
 #else
 #define NTC100K_TEMP_MOTOR(beta)		0.0
-#define NTC100K_TEMP_MOTOR2(beta)		0.0
+#define NTC100K_TEMP_MOTOR_2(beta)		0.0
 #endif
+#endif
+
+#ifndef NTC_RES_MOTOR
+#define NTC_RES_MOTOR(beta)         0.0
 #endif
 
 // Default second motor defines
@@ -441,12 +451,6 @@
 #endif
 #ifndef ADC_IND_TEMP_MOS_M2
 #define ADC_IND_TEMP_MOS_M2		ADC_IND_TEMP_MOS
-#endif
-#ifndef NTC_TEMP_MOTOR_2
-#define NTC_TEMP_MOTOR_2(beta)	NTC_TEMP_MOTOR(beta)
-#endif
-#ifndef ADC_IND_TEMP_MOTOR_2
-#define ADC_IND_TEMP_MOTOR_2	ADC_IND_TEMP_MOTOR
 #endif
 #ifndef  MOTOR_TEMP_LPF
 #define MOTOR_TEMP_LPF 			0.01

@@ -121,7 +121,11 @@ static THD_FUNCTION(adc_thread, arg) {
 		}
 
 		// Read the external ADC pin and convert the value to a voltage.
+#ifdef ADC_IND_EXT
 		float pwr = (float)ADC_Value[ADC_IND_EXT];
+#else
+    float pwr = 0.0;
+#endif
 		pwr /= 4095;
 		pwr *= V_REG;
 

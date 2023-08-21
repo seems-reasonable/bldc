@@ -56,9 +56,11 @@ void app_set_configuration(app_configuration *conf) {
 	app_balance_stop();
 	app_pas_stop();
 
+#ifdef NRF_PORT_CSN
 	if (!conf_general_permanent_nrf_found) {
 		nrf_driver_stop();
 	}
+#endif
 
 #if CAN_ENABLE
 	comm_can_set_baud(conf->can_baud_rate);
@@ -121,10 +123,12 @@ void app_set_configuration(app_configuration *conf) {
 		break;
 
 	case APP_NRF:
+#ifdef NRF_PORT_CSN
 		if (!conf_general_permanent_nrf_found) {
 			nrf_driver_init();
 			rfhelp_restart();
 		}
+#endif
 		break;
 
 	case APP_CUSTOM:
@@ -148,7 +152,9 @@ void app_set_configuration(app_configuration *conf) {
 	app_custom_configure(&appconf);
 #endif
 
+#ifdef NRF_PORT_CSN
 	rfhelp_update_conf(&appconf.app_nrf_conf);
+#endif
 }
 
 /**

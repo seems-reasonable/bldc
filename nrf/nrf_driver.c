@@ -30,6 +30,8 @@
 #include "mc_interface.h"
 #include "app.h"
 
+#ifdef NRF_PORT_CSN
+
 // Settings
 #define MAX_PL_LEN				25
 #define RX_BUFFER_SIZE			PACKET_MAX_PL_LEN
@@ -523,3 +525,5 @@ bool nrf_driver_ext_nrf_running(void) {
 void nrf_driver_pause(int ms) {
 	driver_paused = ms;
 }
+
+#endif

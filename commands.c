@@ -228,9 +228,11 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		break;
 
 	case COMM_ERASE_NEW_APP_ALL_CAN:
+#ifdef NRF_PORT_CSN
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(6000);
 		}
+#endif
 
 		data[-1] = COMM_ERASE_NEW_APP;
 		comm_can_send_buffer(255, data - 1, len + 1, 2);
@@ -240,9 +242,11 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_ERASE_NEW_APP: {
 		int32_t ind = 0;
 
+#ifdef NRF_PORT_CSN
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(6000);
 		}
+#endif
 		uint16_t flash_res = flash_helper_erase_new_app(buffer_get_uint32(data, &ind));
 
 		ind = 0;
@@ -264,9 +268,11 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			len = decompressed_len + 4;
 		}
 
+#ifdef NRF_PORT_CSN
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(2000);
 		}
+#endif
 
 		data[-1] = COMM_WRITE_NEW_APP_DATA;
 
@@ -288,9 +294,11 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		int32_t ind = 0;
 		uint32_t new_app_offset = buffer_get_uint32(data, &ind);
 
+#ifdef NRF_PORT_CSN
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(2000);
 		}
+#endif
 		uint16_t flash_res = flash_helper_write_new_app_data(new_app_offset, data + ind, len - ind);
 
 		SHUTDOWN_RESET();
@@ -662,6 +670,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		break;
 
 	case COMM_NRF_START_PAIRING: {
+#ifdef NRF_PORT_CSN
 		int32_t ind = 0;
 		nrf_driver_start_pairing(buffer_get_int32(data, &ind));
 
@@ -670,6 +679,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		send_buffer[ind++] = packet_id;
 		send_buffer[ind++] = NRF_PAIR_STARTED;
 		reply_func(send_buffer, ind);
+#endif
 	} break;
 
 	case COMM_GPD_SET_FSW: {
@@ -954,6 +964,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_EXT_NRF_PRESENT: {
+#ifdef NRF_PORT_CSN
 		if (!conf_general_permanent_nrf_found) {
 			nrf_driver_init_ext_nrf();
 			if (!nrf_driver_is_pairing()) {
@@ -967,10 +978,13 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 				commands_send_packet_nrf(send_buffer, 5);
 			}
 		}
+#endif
 	} break;
 
 	case COMM_EXT_NRF_ESB_RX_DATA: {
+#ifdef NRF_PORT_CSN
 		nrf_driver_process_packet(data, len);
+#endif
 	} break;
 
 	case COMM_APP_DISABLE_OUTPUT: {
@@ -1066,9 +1080,11 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_ERASE_BOOTLOADER_ALL_CAN:
+#ifdef NRF_PORT_CSN
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(6000);
 		}
+#endif
 
 		data[-1] = COMM_ERASE_BOOTLOADER;
 		comm_can_send_buffer(255, data - 1, len + 1, 2);
@@ -1078,9 +1094,11 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_ERASE_BOOTLOADER: {
 		int32_t ind = 0;
 
+#ifdef NRF_PORT_CSN
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(6000);
 		}
+#endif
 		uint16_t flash_res = flash_helper_erase_bootloader();
 
 		ind = 0;

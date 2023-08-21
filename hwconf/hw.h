@@ -314,11 +314,13 @@
 #endif
 
 // ADC Channels
+#ifdef ADC_IND_EXT
 #ifndef ADC_IND_EXT3
 #define ADC_IND_EXT3 			ADC_IND_EXT
 #endif
 #ifndef ADC_IND_EXT2
 #define ADC_IND_EXT2 			ADC_IND_EXT
+#endif
 #endif
 
 // Adc voltage scaling on phases and input
@@ -329,6 +331,7 @@
 #define ADC_VOLTS_INPUT_FACTOR	1.0
 #endif
 
+#ifdef HW_SPI_PORT_NSS
 // NRF SW SPI (default to spi header pins)
 #ifndef NRF_PORT_CSN
 #define NRF_PORT_CSN			HW_SPI_PORT_NSS
@@ -353,6 +356,7 @@
 #endif
 #ifndef NRF_PIN_MISO
 #define NRF_PIN_MISO			HW_SPI_PIN_MISO
+#endif
 #endif
 
 // CAN device and port (default CAN1)
@@ -484,7 +488,9 @@
 // Functions
 void hw_init_gpio(void);
 void hw_setup_adc_channels(void);
+#ifdef HW_I2C_DEV
 void hw_start_i2c(void);
+#endif
 void hw_stop_i2c(void);
 void hw_try_restore_i2c(void);
 uint8_t hw_id_from_uuid(void);

@@ -69,7 +69,9 @@ void app_nunchuk_configure(chuk_config *conf) {
 void app_nunchuk_start(void) {
 	chuck_d.js_y = 128;
 	stop_now = false;
+#ifdef HW_I2C_DEV
 	hw_start_i2c();
+#endif
 	chThdCreateStatic(chuk_thread_wa, sizeof(chuk_thread_wa), NORMALPRIO, chuk_thread, NULL);
 }
 
@@ -108,6 +110,7 @@ static THD_FUNCTION(chuk_thread, arg) {
 	chRegSetThreadName("Nunchuk i2c");
 	is_running = true;
 
+#ifdef HW_I2C_DEV
 	uint8_t rxbuf[10];
 	uint8_t txbuf[10];
 	msg_t status = MSG_OK;
@@ -117,6 +120,7 @@ static THD_FUNCTION(chuk_thread, arg) {
 
 	hw_start_i2c();
 	chThdSleepMilliseconds(10);
+#endif
 
 	for(;;) {
 		bool is_ok = true;
@@ -127,6 +131,7 @@ static THD_FUNCTION(chuk_thread, arg) {
 			return;
 		}
 
+#ifdef HW_I2C_DEV
 		txbuf[0] = 0xF0;
 		txbuf[1] = 0x55;
 		i2cAcquireBus(&HW_I2C_DEV);
@@ -195,6 +200,7 @@ static THD_FUNCTION(chuk_thread, arg) {
 			hw_try_restore_i2c();
 			chThdSleepMilliseconds(100);
 		}
+#endif
 
 		chThdSleepMilliseconds(10);
 	}

@@ -99,6 +99,7 @@ void imu_init(imu_config *set) {
 				BMI160_SPI_PORT_MOSI, BMI160_SPI_PIN_MOSI,
 				BMI160_SPI_PORT_MISO, BMI160_SPI_PIN_MISO);
 #endif
+#ifdef HW_I2C_SDA_PORT
 	} else if (set->type == IMU_TYPE_EXTERNAL_MPU9X50) {
 		imu_init_mpu9x50(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
@@ -114,6 +115,7 @@ void imu_init(imu_config *set) {
 	} else if (set->type == IMU_TYPE_EXTERNAL_BMI160) {
 		imu_init_bmi160_i2c(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+#endif
 	}
 
 	terminal_register_command_callback(

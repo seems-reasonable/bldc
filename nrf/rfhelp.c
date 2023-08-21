@@ -24,6 +24,8 @@
 #include "crc.h"
 #include <string.h>
 
+#ifdef NRF_PORT_CSN
+
 // Variables
 static mutex_t rf_mutex;
 static char rx_addr[6][5];
@@ -365,3 +367,5 @@ void rfhelp_power_up(void) {
 	rf_power_up();
 	chMtxUnlock(&rf_mutex);
 }
+
+#endif

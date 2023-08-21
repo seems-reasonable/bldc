@@ -22,6 +22,8 @@
 #include "spi_sw.h"
 #include "ch.h"
 
+#ifdef NRF_PORT_CSN
+
 void rf_init(void) {
 	spi_sw_init();
 }
@@ -357,3 +359,5 @@ char rf_read_reg_byte(int reg) {
 	rf_read_reg(reg, &result, 1);
 	return result;
 }
+
+#endif

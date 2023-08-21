@@ -21,6 +21,8 @@
 #include "utils.h"
 #include <stdbool.h>
 
+#ifdef NRF_PORT_CSN
+
 // Private variables
 static bool m_init_done = false;
 static stm32_gpio_t *m_port_csn = NRF_PORT_CSN;
@@ -134,3 +136,5 @@ static void spi_sw_delay(void) {
 		__NOP();
 	}
 }
+
+#endif

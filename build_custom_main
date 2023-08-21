@@ -13,7 +13,7 @@ COPYDIR=75_300
 rm -rf $COPYDIR
 mkdir $COPYDIR
 
-if true; then
+if false; then
 # default
 cd $FWPATH
 touch conf_general.h
@@ -22,7 +22,7 @@ cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 fi
 
-if true; then
+if false; then
 # default with HW limits disables
 cd $FWPATH
 touch conf_general.h
@@ -37,7 +37,7 @@ COPYDIR=75_300_R2
 rm -rf $COPYDIR
 mkdir $COPYDIR
 
-if true; then
+if false; then
 # default
 cd $FWPATH
 touch conf_general.h
@@ -46,7 +46,7 @@ cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 fi
 
-if true; then
+if false; then
 # default with HW limits disables
 cd $FWPATH
 touch conf_general.h
@@ -61,7 +61,7 @@ COPYDIR=75_300_R3
 rm -rf $COPYDIR
 mkdir $COPYDIR
 
-if true; then
+if false; then
 # default
 cd $FWPATH
 touch conf_general.h
@@ -70,7 +70,7 @@ cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 fi
 
-if true; then
+if false; then
 # default with HW limits disables
 cd $FWPATH
 touch conf_general.h
@@ -85,7 +85,7 @@ COPYDIR=100_250
 rm -rf $COPYDIR
 mkdir $COPYDIR
 
-if true; then
+if false; then
 # default
 cd $FWPATH
 touch conf_general.h
@@ -94,7 +94,7 @@ cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 fi
 
-if true; then
+if false; then
 # default with HW limits disables
 cd $FWPATH
 touch conf_general.h
@@ -109,7 +109,7 @@ COPYDIR=60
 rm -rf $COPYDIR
 mkdir $COPYDIR
 
-if true; then
+if false; then
 # default
 cd $FWPATH
 touch conf_general.h
@@ -118,7 +118,7 @@ cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 fi
 
-if true; then
+if false; then
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
@@ -133,7 +133,7 @@ COPYDIR=60_MK3
 rm -rf $COPYDIR
 mkdir $COPYDIR
 
-if true; then
+if false; then
 # default
 cd $FWPATH
 touch conf_general.h
@@ -142,7 +142,7 @@ cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 fi
 
-if true; then
+if false; then
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
@@ -157,7 +157,7 @@ COPYDIR=60_MK4
 rm -rf $COPYDIR
 mkdir $COPYDIR
 
-if true; then
+if false; then
 # default
 cd $FWPATH
 touch conf_general.h
@@ -166,7 +166,7 @@ cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 fi
 
-if true; then
+if false; then
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
@@ -181,7 +181,7 @@ COPYDIR=60_MK5
 rm -rf $COPYDIR
 mkdir $COPYDIR
 
-if true; then
+if false; then
 # default
 cd $FWPATH
 touch conf_general.h
@@ -190,7 +190,7 @@ cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 fi
 
-if true; then
+if false; then
 # default with HW limits disabled
 cd $FWPATH
 touch conf_general.h
@@ -214,7 +214,7 @@ cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
 fi
 
-if true; then
+if false; then
 # default with HW limits disables
 cd $FWPATH
 touch conf_general.h

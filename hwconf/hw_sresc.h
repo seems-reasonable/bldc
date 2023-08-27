@@ -34,9 +34,14 @@
 //
 // Nominal Q_GD is 34 nC for each FET, which is 68 nC total.
 // Nominal Q_G is 169 nC (211 nC) for each FET.
-#define DRV8320S_CUSTOM_SETTINGS(); drv8320s_write_reg(5, ((1 << 10) | (2 << 8) | (1 << 6) | (1 << 4)); \
-    drv8320s_write_reg(3,0x384); \
-    drv8320s_write_reg(4,0x384);
+//
+// TODO: Lower t_DRIVE to something more reasonable.
+// TODO: Pick a VDS_LVL.
+#define DRV8320S_CUSTOM_SETTINGS() do { \
+   	drv8320s_write_reg(5, ((0 << 10) | (1 << 8) | (1 << 6) | (1 << 4) | (13 << 0))); \
+    drv8320s_write_reg(3,0x174); \
+    drv8320s_write_reg(4,0x374); \
+	} while (0)
 
 #define LED_GREEN_GPIO			GPIOB
 #define LED_GREEN_PIN			5
@@ -230,8 +235,9 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-// TODO: Adjust this. Probably set it to 0 and let the gate driver handle it?
-#define HW_DEAD_TIME_NSEC		660.0
+// The gate driver handles this, so the STM32 drives a minimal amount of deadtime.
+#define HW_DEAD_TIME_NSEC		100.0
+// TODO: Should we also override MCCONF_FOC_DT_US based on DEAD_TIME (in register 5)?
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE

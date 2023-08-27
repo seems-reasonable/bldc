@@ -179,6 +179,7 @@ void mc_interface_init(void) {
 #elif defined(HW_HAS_DRV8320S)
 	drv8320s_set_oc_mode(motor_now()->m_conf.m_drv8301_oc_mode);
 	drv8320s_set_oc_adj(motor_now()->m_conf.m_drv8301_oc_adj);
+	DRV8320S_CUSTOM_SETTINGS();
 #elif defined(HW_HAS_DRV8323S)
 	drv8323s_set_oc_mode(motor_now()->m_conf.m_drv8301_oc_mode);
 	drv8323s_set_oc_adj(motor_now()->m_conf.m_drv8301_oc_adj);

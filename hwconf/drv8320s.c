@@ -270,12 +270,6 @@ unsigned int drv8320s_read_reg(int reg) {
 
 	chMtxLock(&m_spi_mutex);
 
-	if (reg != 0) {
-		spi_begin();
-		spi_exchange(out);
-		spi_end();
-	}
-
 	spi_begin();
 	uint16_t res = spi_exchange(out);
 	spi_end();
@@ -311,12 +305,17 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 
 		for (int bit = 0;bit < 16;bit++) {
 			palWritePad(DRV8320S_MOSI_GPIO, DRV8320S_MOSI_PIN, send >> 15);
+			(void)palReadLatch(DRV8320S_MOSI_GPIO);
+			spi_delay();
 			send <<= 1;
 
 			palSetPad(DRV8320S_SCK_GPIO, DRV8320S_SCK_PIN);
+			(void)palReadLatch(DRV8320S_SCK_GPIO);
 			spi_delay();
 
 			palClearPad(DRV8320S_SCK_GPIO, DRV8320S_SCK_PIN);
+			(void)palReadLatch(DRV8320S_SCK_GPIO);
+			spi_delay();
 
 			int r1, r2, r3;
 			r1 = palReadPad(DRV8320S_MISO_GPIO, DRV8320S_MISO_PIN);
@@ -341,16 +340,16 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 
 static void spi_begin(void) {
 	palClearPad(DRV8320S_CS_GPIO, DRV8320S_CS_PIN);
+	(void)palReadLatch(DRV8320S_CS_GPIO);
 }
 
 static void spi_end(void) {
 	palSetPad(DRV8320S_CS_GPIO, DRV8320S_CS_PIN);
+	(void)palReadLatch(DRV8320S_CS_GPIO);
 }
 
 static void spi_delay(void) {
-	for (volatile int i = 0;i < 10;i++) {
-		__NOP();
-	}
+	__asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop":::"memory");
 }
 
 static void terminal_read_reg(int argc, const char **argv) {

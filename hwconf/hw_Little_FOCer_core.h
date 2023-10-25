@@ -39,7 +39,7 @@
 #define HW_HAS_3_SHUNTS
 
 #ifdef LFOC_IS_V3
-#define HW_HAS_PHASE_FILTERS
+//#define HW_HAS_PHASE_FILTERS
 #define PHASE_FILTER_GPIO       GPIOC
 #define PHASE_FILTER_PIN        13
 #define PHASE_FILTER_ON()       palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)

@@ -213,8 +213,6 @@
 //#define APPCONF_APP_TO_USE			APP_CUSTOM
 //#define APPCONF_CAN_BAUD_RATE		CAN_BAUD_75K
 
-#define APP_CUSTOM_TO_USE "app_flipper_solenoid.c"
-
 #include "hw.h"
 #include "mcconf_default.h"
 #include "appconf_default.h"

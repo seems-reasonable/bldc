@@ -198,3 +198,73 @@ make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"hw_60.c\\\" -DHW_HEADER
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 fi
+
+#################### Little_FOCer ########################
+
+COPYDIR=Little_FOCer
+rm -rf $COPYDIR
+mkdir $COPYDIR
+
+if true; then
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DHW_SOURCE=\\\"hw_Little_FOCer_core.c\\\" -DHW_HEADER=\\\"hw_Little_FOCer.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+fi
+
+if true; then
+# default with HW limits disabled
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"hw_Little_FOCer_core.c\\\" -DHW_HEADER=\\\"hw_Little_FOCer.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+fi
+#################### Little_FOCer_V3 ########################
+
+COPYDIR=Little_FOCer
+rm -rf $COPYDIR
+mkdir $COPYDIR
+
+if true; then
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DHW_SOURCE=\\\"hw_Little_FOCer_core.c\\\" -DHW_HEADER=\\\"hw_Little_FOCer_V3.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+fi
+
+if true; then
+# default with HW limits disabled
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"hw_Little_FOCer_core.c\\\" -DHW_HEADER=\\\"hw_Little_FOCer_V3.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+fi
+#################### Little_FOCer_V3_1 ########################
+
+COPYDIR=Little_FOCer
+rm -rf $COPYDIR
+mkdir $COPYDIR
+
+if true; then
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DHW_SOURCE=\\\"hw_Little_FOCer_core.c\\\" -DHW_HEADER=\\\"hw_Little_FOCer_V3_1.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+fi
+
+if true; then
+# default with HW limits disabled
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"hw_Little_FOCer_core.c\\\" -DHW_HEADER=\\\"hw_Little_FOCer_V3_1.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+fi

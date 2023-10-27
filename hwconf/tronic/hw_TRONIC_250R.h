@@ -260,8 +260,8 @@
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE       MOTOR_TYPE_FOC
 #endif
-#ifndef MCCONF_FOC_F_ZV
-#define MCCONF_FOC_F_ZV                 20000.0
+#ifndef MCCONF_FOC_F_SW
+#define MCCONF_FOC_F_SW                 20000.0
 #endif
 #ifndef MCCONF_L_SLOW_ABS_OVERCURRENT
 #define MCCONF_L_SLOW_ABS_OVERCURRENT  false  // Use the filtered (and hence slower) current for the overcurrent fault detection

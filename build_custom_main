@@ -198,3 +198,27 @@ make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"hw_60.c\\\" -DHW_HEADER
 cd $DIR
 cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
 fi
+
+#################### HW 250R ########################
+
+COPYDIR=250R
+rm -rf $COPYDIR
+mkdir $COPYDIR
+
+if true; then
+# default
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DHW_SOURCE=\\\"tronic/hw_TRONIC_250R.c\\\" -DHW_HEADER=\\\"tronic/hw_TRONIC_250R.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default.bin
+fi
+
+if true; then
+# default with HW limits disabled
+cd $FWPATH
+touch conf_general.h
+make -j8 build_args="-DDISABLE_HW_LIMITS -DHW_SOURCE=\\\"tronic/hw_TRONIC_250R.c\\\" -DHW_HEADER=\\\"tronic/hw_TRONIC_250R.h\\\" -DGIT_COMMIT=\\\"${GIT_COMMIT}\\\"" USE_VERBOSE_COMPILE=no
+cd $DIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/VESC_default_no_hw_limits.bin
+fi

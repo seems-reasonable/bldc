@@ -38,6 +38,9 @@
 // Nominal Q_GD is 34 nC for each FET, which is 68 nC total.
 // Nominal Q_G is 169 nC (211 nC) for each FET.
 //
+// IDRIVEP_HS seems to act as if it's lower than configured, especially at
+// gate voltages above 5V or so.
+//
 // TODO: Lower t_DRIVE to something more reasonable?
 // TODO: Pick a reasonable VDS_LVL default.
 // TODO: Change OCP_MODE default to LATCH_SHUTDOWN.
@@ -46,7 +49,7 @@
 // the VDS_LVL value is the OCP_ADJ value divided by 2.
 #define DRV8320S_CUSTOM_SETTINGS() do { \
     drv8320s_write_reg(5, ((0 << 10) | (1 << 8) | (1 << 4))); \
-    drv8320s_write_reg(3,0x343); \
+    drv8320s_write_reg(3,0x363); \
     drv8320s_write_reg(4,0x343); \
     drv8320s_write_reg(2, (1 << 10)); \
 } while (0)

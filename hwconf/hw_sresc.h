@@ -46,8 +46,8 @@
 // the VDS_LVL value is the OCP_ADJ value divided by 2.
 #define DRV8320S_CUSTOM_SETTINGS() do { \
     drv8320s_write_reg(5, ((0 << 10) | (1 << 8) | (1 << 4))); \
-    drv8320s_write_reg(3,0x174); \
-    drv8320s_write_reg(4,0x374); \
+    drv8320s_write_reg(3,0x343); \
+    drv8320s_write_reg(4,0x343); \
     drv8320s_write_reg(2, (1 << 10)); \
 } while (0)
 

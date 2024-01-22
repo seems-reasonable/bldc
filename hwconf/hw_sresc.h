@@ -25,23 +25,31 @@
 #include "drv8320s.h"
 
 // HW properties
+// This hardware actually has DRV8350S, but the registers are the same as
+// the DRV8320S (along with the DRV8323S and DRV8353S).
 #define HW_HAS_DRV8320S
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
 //#define HW_HAS_PHASE_FILTERS
 
-// Docs at https://www.ti.com/lit/ds/symlink/drv8320.pdf
+// Docs at https://www.ti.com/lit/ds/symlink/drv8320.pdf and
+// https://www.ti.com/lit/ds/symlink/drv8353.pdf
 //
 // Nominal Q_GD is 34 nC for each FET, which is 68 nC total.
 // Nominal Q_G is 169 nC (211 nC) for each FET.
 //
-// TODO: Lower t_DRIVE to something more reasonable.
-// TODO: Pick a VDS_LVL.
+// TODO: Lower t_DRIVE to something more reasonable?
+// TODO: Pick a reasonable VDS_LVL default.
+// TODO: Change OCP_MODE default to LATCH_SHUTDOWN.
+//
+// VDS_LVL and OCP_MODE from here get overwritten via the motorconf. Note that
+// the VDS_LVL value is the OCP_ADJ value divided by 2.
 #define DRV8320S_CUSTOM_SETTINGS() do { \
-   	drv8320s_write_reg(5, ((0 << 10) | (1 << 8) | (1 << 6) | (1 << 4) | (13 << 0))); \
+    drv8320s_write_reg(5, ((0 << 10) | (1 << 8) | (1 << 4))); \
     drv8320s_write_reg(3,0x174); \
     drv8320s_write_reg(4,0x374); \
-	} while (0)
+    drv8320s_write_reg(2, (1 << 10)); \
+} while (0)
 
 #define LED_GREEN_GPIO			GPIOB
 #define LED_GREEN_PIN			5
@@ -98,7 +106,12 @@
 // ADC macros and settings
 
 #ifndef V_REG
-#define V_REG					3.3
+// Datasheet has this equation: 0.768 * (1 + 33.2/10) = 3.318
+// But it measures closer to this, and the datasheet also mentions 0.8 which
+// gives 3.346.
+// The datasheet has no tolerance or explicitly-stated nominal feedback
+// comparison voltage...
+#define V_REG					3.34
 #endif
 #ifndef VIN_R1
 #define VIN_R1					55800.0

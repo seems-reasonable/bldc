@@ -340,7 +340,7 @@ static THD_FUNCTION(ppm_thread, arg) {
 			}
 
 			if (!(pulses_without_power < MIN_PULSES_WITHOUT_POWER && config.safe_start)) {
-				mc_interface_set_pid_speed(servo_val * config.pid_max_erpm);
+				mc_interface_set_pid_pos(servo_val * config.pid_max_erpm);
 				send_current = true;
 			}
 			break;

@@ -251,7 +251,7 @@ unsigned int drv8301_read_reg(int reg) {
 	spi_end();
 
 	spi_begin();
-	uint16_t res = spi_exchange(0xFFFF);
+	uint16_t res = spi_exchange(out);
 	spi_end();
 
 	chMtxUnlock(&m_spi_mutex);

@@ -246,11 +246,9 @@ unsigned int drv8301_read_reg(int reg) {
 
 	chMtxLock(&m_spi_mutex);
 
-	if (reg != 0) {
-		spi_begin();
-		spi_exchange(out);
-		spi_end();
-	}
+	spi_begin();
+	spi_exchange(out);
+	spi_end();
 
 	spi_begin();
 	uint16_t res = spi_exchange(0xFFFF);
@@ -287,12 +285,17 @@ static void spi_transfer(uint16_t *in_buf, const uint16_t *out_buf, int length) 
 
 		for (int bit = 0;bit < 16;bit++) {
 			palWritePad(DRV8301_MOSI_GPIO, DRV8301_MOSI_PIN, send >> 15);
+			(void)palReadLatch(DRV8301_MOSI_GPIO);
+			spi_delay();
 			send <<= 1;
 
 			palSetPad(DRV8301_SCK_GPIO, DRV8301_SCK_PIN);
+			(void)palReadLatch(DRV8301_SCK_GPIO);
 			spi_delay();
 
 			palClearPad(DRV8301_SCK_GPIO, DRV8301_SCK_PIN);
+			(void)palReadLatch(DRV8301_SCK_GPIO);
+			spi_delay();
 
 			int r1, r2, r3;
 			r1 = palReadPad(DRV8301_MISO_GPIO, DRV8301_MISO_PIN);
@@ -319,11 +322,14 @@ static void spi_begin(void) {
 #ifdef DRV8301_CS_GPIO2
 	if (mc_interface_motor_now() == 2) {
 		palClearPad(DRV8301_CS_GPIO2, DRV8301_CS_PIN2);
+		(void)palReadLatch(DRV8301_CS_GPIO2);
 	} else {
 		palClearPad(DRV8301_CS_GPIO, DRV8301_CS_PIN);
+		(void)palReadLatch(DRV8301_CS_GPIO);
 	}
 #else
 	palClearPad(DRV8301_CS_GPIO, DRV8301_CS_PIN);
+	(void)palReadLatch(DRV8301_CS_GPIO);
 #endif
 }
 
@@ -331,18 +337,19 @@ static void spi_end(void) {
 #ifdef DRV8301_CS_GPIO2
 	if (mc_interface_motor_now() == 2) {
 		palSetPad(DRV8301_CS_GPIO2, DRV8301_CS_PIN2);
+		(void)palReadLatch(DRV8301_CS_GPIO2);
 	} else {
 		palSetPad(DRV8301_CS_GPIO, DRV8301_CS_PIN);
+		(void)palReadLatch(DRV8301_CS_GPIO);
 	}
 #else
 	palSetPad(DRV8301_CS_GPIO, DRV8301_CS_PIN);
+	(void)palReadLatch(DRV8301_CS_GPIO);
 #endif
 }
 
 static void spi_delay(void) {
-	for (volatile int i = 0;i < 10;i++) {
-		__NOP();
-	}
+	__asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop":::"memory");
 }
 
 static void terminal_read_reg(int argc, const char **argv) {

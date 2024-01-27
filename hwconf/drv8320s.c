@@ -264,7 +264,11 @@ unsigned int drv8320s_read_reg(int reg) {
 	chMtxLock(&m_spi_mutex);
 
 	spi_begin();
-	uint16_t res = spi_exchange(out);
+	spi_exchange(out);
+	spi_end();
+
+	spi_begin();
+	uint16_t res = spi_exchange(0xFFFF);
 	spi_end();
 
 	chMtxUnlock(&m_spi_mutex);

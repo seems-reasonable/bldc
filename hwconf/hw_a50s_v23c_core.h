@@ -21,7 +21,7 @@
 #define HW_A50S_V23C_CORE_H_
 
 // HW properties
-#define HW_HAS_PHASE_FILTERS
+//#define HW_HAS_PHASE_FILTERS
 #define HW_USE_25MHZ_EXT_CLOCK
 
 
@@ -219,8 +219,8 @@
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE	MOTOR_TYPE_FOC
 #endif
-#ifndef MCCONF_FOC_F_ZV
-#define MCCONF_FOC_F_ZV				25000.0 // Switching frequency reduced to allow rise time of low side shunts
+#ifndef MCCONF_FOC_F_SW
+#define MCCONF_FOC_F_SW				25000.0 // Switching frequency reduced to allow rise time of low side shunts
 #endif
 #define HW_LIM_FOC_CTRL_LOOP_FREQ	5000.0, 22500.0	// Limit to 45kHz max 
 #ifndef MCCONF_FOC_DT_US
@@ -292,8 +292,10 @@
 #error "Must define a hardware type"
 #endif
 
+#if 0
 float hw_a50s_get_current_cal_1(void);
 float hw_a50s_get_current_cal_2(void);
+#endif
 
 float hw_a50s_get_adc_v_l1(void);
 float hw_a50s_get_adc_v_l2(void);

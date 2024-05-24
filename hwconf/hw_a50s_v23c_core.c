@@ -20,7 +20,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
-#include "utils_math.h"
+#include "utils.h"
 #include <math.h>
 #include "mc_interface.h"
 #include "stm32f4xx_rcc.h"
@@ -41,13 +41,17 @@
 // Current sensor calibration
 void hw_a50s_read_current_sensor_cal(void);
 void hw_a50s_read_eeprom_data(void);
+#if 0
 static void terminal_cmd_read_current_cal(int argc, const char **argv);
 float current_cal_1 = 0.0;
 float current_cal_2 = 0.0;
 static i2c_bb_state m_i2c_bb;
+#endif
 // Variables
 static volatile bool i2c_running = false;
+#if 0
 int32_t serial_number = -1;
+#endif
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -116,6 +120,7 @@ void hw_init_gpio(void) {
 	
 	
 	
+#if 0
 	terminal_register_command_callback(
 			"read_current_cal",
 			"Read current sensor gain.",
@@ -134,6 +139,7 @@ void hw_init_gpio(void) {
 	chThdSleepMilliseconds(10);
 	hw_a50s_read_eeprom_data(); // Serial, etc
 	hw_a50s_read_current_sensor_cal();	
+#endif
 }
 
 void hw_setup_adc_channels(void) {
@@ -278,6 +284,7 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
+#if 0
 // Read permanent items from eeprom
 void hw_a50s_read_eeprom_data() {
 	uint8_t txb[5];
@@ -366,6 +373,7 @@ static void terminal_cmd_read_current_cal(int argc, const char **argv) {
 	
 	return;
 }
+#endif
 
 float hw_a50s_get_adc_v_l1() {
 	if (mc_interface_get_configuration()->motor_type == MOTOR_TYPE_FOC) {
@@ -390,4 +398,3 @@ float hw_a50s_get_adc_v_l3() {
 		return ADC_Value[ADC_IND_SENS3];
 	}
 }
-

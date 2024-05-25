@@ -38,7 +38,8 @@ typedef enum {
 	ENCODER_TYPE_ABI,
 	ENCODER_TYPE_AS5x47U,
 	ENCODER_TYPE_BISSC,
-	ENCODER_TYPE_CUSTOM
+	ENCODER_TYPE_CUSTOM,
+	ENCODER_TYPE_PWM
 } encoder_type_t;
 
 typedef struct {
@@ -302,5 +303,19 @@ typedef struct {
 
 	BISSC_state state;
 } BISSC_config_t;
+
+typedef struct {
+  float last_enc_angle;
+  uint32_t pwm_error_cnt;
+  float pwm_error_rate;
+  float pwm_last_period;
+  float last_pwm_measured_enc_angle;
+  systime_t pwm_last_measurement_time;
+  float pwm_last_velocity;
+} PWM_state;
+
+typedef struct {
+  PWM_state state;
+} PWM_config_t;
 
 #endif /* ENCODER_DATATYPE_H_ */

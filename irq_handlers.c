@@ -43,11 +43,12 @@ CH_IRQ_HANDLER(HW_ENC_EXTI_ISR_VEC) {
 }
 
 CH_IRQ_HANDLER(HW_ENC_TIM_ISR_VEC) {
-	if (TIM_GetITStatus(HW_ENC_TIM, TIM_IT_Update) != RESET) {
+	if (TIM_GetITStatus(HW_ENC_TIM, TIM_IT_Update) != RESET || TIM_GetITStatus(HW_ENC_TIM, TIM_IT_CC2) != RESET) {
 		encoder_tim_isr();
 
-		// Clear the IT pending bit
+		// Clear the pending bits
 		TIM_ClearITPendingBit(HW_ENC_TIM, TIM_IT_Update);
+		TIM_ClearITPendingBit(HW_ENC_TIM, TIM_IT_CC2);
 	}
 }
 

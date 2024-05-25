@@ -1,5 +1,6 @@
 /*
-	Copyright 2022 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2022 Jakub Tomczak
 
 	This file is part of the VESC firmware.
 
@@ -17,22 +18,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ENCODER_CFG_H_
-#define ENCODER_CFG_H_
+#ifndef ENC_PWM_H_
+#define ENC_PWM_H_
 
-#include "encoder_datatype.h"
+#include "encoder/encoder_datatype.h"
 
-// Global encoder configurations
-extern ABI_config_t encoder_cfg_ABI;
-extern AD2S1205_config_t encoder_cfg_ad2s1205;
-extern AS5x47U_config_t encoder_cfg_as5x47u;
-extern AS504x_config_t encoder_cfg_as504x;
-extern BISSC_config_t encoder_cfg_bissc;
-extern MT6816_config_t encoder_cfg_mt6816;
-extern ENCSINCOS_config_t encoder_cfg_sincos;
-extern TLE5012_config_t encoder_cfg_tle5012;
-extern TS5700N8501_config_t encoder_cfg_TS5700N8501;
-extern PWM_config_t encoder_cfg_pwm;
+// Functions
+bool enc_pwm_init(PWM_config_t *pwm_config);
+void enc_pwm_deinit(PWM_config_t *cfg);
+void enc_pwm_routine(PWM_config_t *cfg);
+float enc_pwm_read_deg(PWM_config_t *cfg);
+
+float enc_pwm_get_error_rate(PWM_config_t *cfg);
+float enc_pwm_time_since_reading(PWM_config_t *cfg);
 
 
-#endif /* ENCODER_CFG_H_ */
+#endif /* ENC_PWM_H_ */

@@ -205,3 +205,7 @@ BISSC_config_t encoder_cfg_bissc = {
 		{0.0, 0, 0.0, 0, 0.0, 0, 0, {0}}
 #endif
 };
+
+PWM_config_t encoder_cfg_pwm = {
+		{0.0, 0, 0.0, -1.0, 0.0, 0, 0}, // State
+};

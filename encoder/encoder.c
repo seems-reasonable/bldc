@@ -98,6 +98,7 @@ bool encoder_init(volatile mc_configuration *conf) {
 		res = true;
 	} break;
 
+#if 0
 	case SENSOR_PORT_MODE_MT6816_SPI_HW: {
 		SENSOR_PORT_5V();
 
@@ -111,6 +112,7 @@ bool encoder_init(volatile mc_configuration *conf) {
 
 		res = true;
 	} break;
+#endif
 
 	// ssc (3 wire) sw spi on hall pins
 	case SENSOR_PORT_MODE_TLE5012_SSC_SW: {
@@ -257,6 +259,19 @@ bool encoder_init(volatile mc_configuration *conf) {
 		m_encoder_type_now = ENCODER_TYPE_CUSTOM;
 		break;
 
+	case SENSOR_PORT_MODE_MT6816_SPI_HW:
+	case SENSOR_PORT_MODE_PWM_ENCODER: {
+		SENSOR_PORT_5V();
+
+		if (!enc_pwm_init(&encoder_cfg_pwm)) {
+			m_encoder_type_now = ENCODER_TYPE_NONE;
+			return false;
+		}
+
+		m_encoder_type_now = ENCODER_TYPE_PWM;
+		res = true;
+	} break;
+
 	default:
 		SENSOR_PORT_5V();
 		m_encoder_type_now = ENCODER_TYPE_NONE;
@@ -311,8 +326,10 @@ void encoder_deinit(void) {
 
 	if (m_encoder_type_now == ENCODER_TYPE_AS504x) {
 		enc_as504x_deinit(&encoder_cfg_as504x);
+#if 0
 	} else if (m_encoder_type_now == ENCODER_TYPE_MT6816) {
 		enc_mt6816_deinit(&encoder_cfg_mt6816);
+#endif
 	} else if (m_encoder_type_now == ENCODER_TYPE_TLE5012) {
 		enc_tle5012_deinit(&encoder_cfg_tle5012);
 	} else if (m_encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
@@ -327,6 +344,8 @@ void encoder_deinit(void) {
 		enc_as5x47u_deinit(&encoder_cfg_as5x47u);
 	} else if (m_encoder_type_now == ENCODER_TYPE_BISSC) {
 		enc_bissc_deinit(&encoder_cfg_bissc);
+	} else if (m_encoder_type_now == ENCODER_TYPE_PWM || m_encoder_type_now == ENCODER_TYPE_MT6816) {
+		enc_pwm_deinit(&encoder_cfg_pwm);
 	}
 
 	m_encoder_type_now = ENCODER_TYPE_NONE;
@@ -359,8 +378,10 @@ void encoder_set_custom_callbacks (
 float encoder_read_deg(void) {
 	if (m_encoder_type_now == ENCODER_TYPE_AS504x) {
 		return AS504x_LAST_ANGLE(&encoder_cfg_as504x);
+#if 0
 	} else if (m_encoder_type_now == ENCODER_TYPE_MT6816) {
 		return MT6816_LAST_ANGLE(&encoder_cfg_mt6816);
+#endif
 	} else if (m_encoder_type_now == ENCODER_TYPE_TLE5012) {
 		return TLE5012_LAST_ANGLE(&encoder_cfg_tle5012);
 	} else if (m_encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
@@ -381,6 +402,8 @@ float encoder_read_deg(void) {
 		} else {
 			return m_enc_custom_pos;
 		}
+	} else if (m_encoder_type_now == ENCODER_TYPE_PWM || m_encoder_type_now == ENCODER_TYPE_MT6816) {
+		return enc_pwm_read_deg(&encoder_cfg_pwm);
 	}
 	return 0.0;
 }
@@ -446,9 +469,11 @@ float encoder_get_error_rate(void) {
 	case ENCODER_TYPE_AS504x:
 		res = encoder_cfg_as504x.state.spi_error_rate;
 		break;
+#if 0
 	case ENCODER_TYPE_MT6816:
 		res = encoder_cfg_mt6816.state.encoder_no_magnet_error_rate;
 		break;
+#endif
 	case ENCODER_TYPE_TLE5012:
 		res = encoder_cfg_tle5012.state.spi_error_rate;
 		break;
@@ -476,6 +501,10 @@ float encoder_get_error_rate(void) {
 			res = encoder_cfg_bissc.state.spi_data_error_rate;
 		}
 		break;
+	case ENCODER_TYPE_MT6816:
+	case ENCODER_TYPE_PWM:
+    res = encoder_cfg_pwm.state.pwm_error_rate;
+    break;
 	default:
 		break;
 	}
@@ -513,11 +542,13 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 			}
 			break;
 
+#if 0
 		case SENSOR_PORT_MODE_MT6816_SPI_HW:
 			if (encoder_cfg_mt6816.state.encoder_no_magnet_error_rate > 0.05) {
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, is_second_motor, false);
 			}
 			break;
+#endif
 		
 		case SENSOR_PORT_MODE_TLE5012_SSC_HW:
 		case SENSOR_PORT_MODE_TLE5012_SSC_SW:
@@ -597,6 +628,16 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 			}
 			break;
 
+		case SENSOR_PORT_MODE_MT6816_SPI_HW:
+		case SENSOR_PORT_MODE_PWM_ENCODER:
+			if (enc_pwm_get_error_rate(&encoder_cfg_pwm) > 0.05) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE, is_second_motor, false);
+			}
+
+			if (enc_pwm_time_since_reading(&encoder_cfg_pwm) > 0.2f) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, is_second_motor, false);
+			}
+
 		default:
 			break;
 		}
@@ -609,6 +650,15 @@ void encoder_pin_isr(void) {
 
 void encoder_tim_isr(void) {
 	// Use thread. Maybe use this one for encoders with a higher rate.
+	switch (m_encoder_type_now) {
+		case ENCODER_TYPE_MT6816:
+		case ENCODER_TYPE_PWM:
+			enc_pwm_routine(&encoder_cfg_pwm);
+			break;
+
+		default:
+			break;
+	}
 }
 
 static void terminal_encoder(int argc, const char **argv) {
@@ -642,11 +692,13 @@ static void terminal_encoder(int argc, const char **argv) {
 		}
 		break;
 
+#if 0
 	case SENSOR_PORT_MODE_MT6816_SPI_HW:
 		commands_printf("Low flux error (no magnet): errors: %d, error rate: %.3f %%",
 				encoder_cfg_mt6816.state.encoder_no_magnet_error_cnt,
 				(double)(encoder_cfg_mt6816.state.encoder_no_magnet_error_rate * 100.0));
 		break;
+#endif
 
 	case SENSOR_PORT_MODE_TLE5012_SSC_HW:
 	case SENSOR_PORT_MODE_TLE5012_SSC_SW: ;
@@ -771,6 +823,15 @@ static void terminal_encoder(int argc, const char **argv) {
 		}
 		break;
 
+	case SENSOR_PORT_MODE_MT6816_SPI_HW:
+	case SENSOR_PORT_MODE_PWM_ENCODER:
+		commands_printf("PWM encoder value: %d, errors: %d, error rate: %.3f %%, time since reading %.3f s",
+				(unsigned int)enc_pwm_read_deg(&encoder_cfg_pwm),
+				encoder_cfg_pwm.state.pwm_error_cnt,
+				(double)enc_pwm_get_error_rate(&encoder_cfg_pwm) * (double)100.0,
+				(double)enc_pwm_time_since_reading(&encoder_cfg_pwm));
+		break;
+
 	default:
 		commands_printf("No encoder debug info available.");
 		break;
@@ -801,9 +862,11 @@ static THD_FUNCTION(routine_thread, arg) {
 			enc_as504x_routine(&encoder_cfg_as504x);
 			break;
 
+#if 0
 		case ENCODER_TYPE_MT6816:
 			enc_mt6816_routine(&encoder_cfg_mt6816);
 			break;
+#endif
 
 		case ENCODER_TYPE_TLE5012:
 			enc_tle5012_routine(&encoder_cfg_tle5012);

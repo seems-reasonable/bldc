@@ -2,6 +2,8 @@
 set -e
 
 # Copied from build_all/rebuild_all.
+#
+# Use this compiler: https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2
 
 FWPATH="./"
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )

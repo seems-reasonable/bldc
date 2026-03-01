@@ -657,6 +657,10 @@ void terminal_process_string(char *str) {
 				} else {
 					int print_div = 0;
 					for (float t = 0.0;t < time;t += 0.002) {
+						if (mc_interface_get_fault() != FAULT_CODE_NONE) {
+							commands_printf("Faulted!\n");
+							break;
+						}
 						timeout_reset();
 						mcpwm_foc_set_openloop_phase(current, angle);
 						chThdSleepMilliseconds(2);

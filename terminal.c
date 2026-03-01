@@ -672,6 +672,7 @@ void terminal_process_string(char *str) {
 						}
 					}
 
+					mc_interface_release_motor();
 					commands_printf("Done\n");
 				}
 			} else {

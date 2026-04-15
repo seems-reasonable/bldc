@@ -91,7 +91,7 @@ static void icuperiodcb(ICUDriver *icup) {
 }
 
 static ICUConfig icucfg = {
-		ICU_INPUT_ACTIVE_HIGH,
+		ICU_INPUT_ACTIVE_LOW,
 		TIMER_FREQ,
 		icuwidthcb,
 		icuperiodcb,
